@@ -6,7 +6,7 @@ import MainLayout from '@/components/layout/MainLayout'
 
 // Pages
 import Dashboard from '@/pages/Dashboard'
-import Overdue from '@/pages/Overdue'
+import Overdue from '@/pages/DetailMesin'
 import Rekap from '@/pages/Rekap'
 import Sewa from '@/pages/Sewa'
 import DetailMesin from '@/pages/DetailMesin'
