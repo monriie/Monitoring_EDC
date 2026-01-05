@@ -20,8 +20,8 @@ const Sidebar = () => {
   const isActive = (path) => location.pathname === path
 
   return (
-    <aside className="fixed top-20 left-0 z-40 h-[calc(100vh-4rem)] bg-white shadow-sm w-16 md:w-52 transition-all duration-300">
-      <nav className="flex flex-col h-full py-4 md:py-6">
+    <aside className="fixed top-15.5 left-0 z-40 h-[calc(100vh-4rem)] bg-white shadow-sm w-16 md:w-52 transition-all duration-300">
+      <nav className="flex flex-col h-full py-6">
         <ul className="space-y-1 md:space-y-2 px-2 md:pl-8 md:pr-4">
           {menuItems.map((item) => {
             const Icon = item.icon

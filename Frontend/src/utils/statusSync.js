@@ -30,8 +30,8 @@ const syncMachineStatuses = (machine, changedField, newValue) => {
   // Status sewa BERAKHIR → Mesin NONAKTIF
   if (changedField === 'status_sewa' && newValue === 'BERAKHIR') {
     if (updated.status_mesin === 'AKTIF') {
-      updated.status_mesin = 'TIDAK_AKTIF'
-      warning = 'Status mesin otomatis berubah menjadi TIDAK_AKTIF'
+      updated.status_mesin = 'NONAKTIF'
+      warning = 'Status mesin otomatis berubah menjadi NONAKTIF'
     }
   }
 
@@ -46,7 +46,7 @@ const syncMachineStatuses = (machine, changedField, newValue) => {
 
   // Sewa AKTIF kembali → Mesin AKTIF
   if (changedField === 'status_sewa' && newValue === 'AKTIF') {
-    if (updated.status_mesin === 'TIDAK_AKTIF') {
+    if (updated.status_mesin === 'NONAKTIF') {
       updated.status_mesin = 'AKTIF'
       updated.status_letak = 'NASABAH'
     }

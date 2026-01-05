@@ -67,7 +67,7 @@ const EditModal = () => {
         return 'Mesin dalam perbaikan otomatis berada di Vendor.'
       case 'RUSAK':
         return 'Mesin rusak otomatis berada di Bank untuk konfirmasi.'
-      case 'TIDAK_AKTIF':
+      case 'NONAKTIF':
         return 'Mesin nonaktif dikembalikan ke Bank.'
       case 'AKTIF':
         return 'Mesin aktif biasanya berada di Nasabah.'
@@ -188,7 +188,7 @@ const EditModal = () => {
                   <SelectItem value="AKTIF">Aktif</SelectItem>
                   <SelectItem value="PERBAIKAN">Perbaikan</SelectItem>
                   <SelectItem value="RUSAK">Rusak</SelectItem>
-                  <SelectItem value="TIDAK_AKTIF">Tidak Aktif</SelectItem>
+                  <SelectItem value="NONAKTIF">Nonaktif</SelectItem>
                 </SelectContent>
               </Select>
             </div>

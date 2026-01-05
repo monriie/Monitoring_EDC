@@ -22,6 +22,22 @@ const initialMachines = [
     sumber_data: ["BANK", "VENDOR"]
   },
   {
+    terminal_id: "32090012",
+    mid: "70910012",
+    nama_nasabah: "RM sakit",
+    kota: null,
+    cabang: null,
+    tipe_edc: null,
+    status_data: "TERDATA_BANK",
+    status_mesin: "PERBAIKAN",
+    status_sewa: "AKTIF",
+    status_letak: "VENDOR",
+    tanggal_pasang: "2024-05-01",
+    estimasi_selesai: "2026-01-01",
+    biaya_sewa: 1500000,
+    sumber_data: ["BANK"]
+  },
+  {
     terminal_id: "32090002",
     mid: "70910002",
     nama_nasabah: "RM Padang Minang",
@@ -33,7 +49,7 @@ const initialMachines = [
     status_sewa: "AKTIF",
     status_letak: "VENDOR",
     tanggal_pasang: "2024-05-01",
-    estimasi_selesai: "2024-12-28",
+    estimasi_selesai: "2026-01-08",
     biaya_sewa: 1500000,
     sumber_data: ["BANK"]
   },
@@ -49,7 +65,7 @@ const initialMachines = [
     status_sewa: "BERAKHIR",
     status_letak: "NASABAH",
     tanggal_pasang: "2025-07-12",
-    estimasi_selesai: null,
+    estimasi_selesai: "2025-12-01",
     biaya_sewa: 1500000,
     sumber_data: ["VENDOR"]
   },
@@ -81,7 +97,7 @@ const initialMachines = [
     status_letak: "VENDOR",
     status_sewa: "AKTIF",
     tanggal_pasang: "2024-08-20",
-    estimasi_selesai: "2024-12-29",
+    estimasi_selesai: "2025-12-29",
     biaya_sewa: 1500000,
     sumber_data: ["BANK", "VENDOR"]
   },
@@ -96,8 +112,8 @@ const initialMachines = [
     status_mesin: "RUSAK",
     status_letak: "BANK",
     status_sewa: "AKTIF",
-    tanggal_pasang: "2024-04-10",
-    estimasi_selesai: "2024-12-25",
+    tanggal_pasang: "2024-01-10",
+    estimasi_selesai: "2026-1-25",
     biaya_sewa: 1500000,
     sumber_data: ["BANK", "VENDOR"]
   },
@@ -112,7 +128,7 @@ const initialMachines = [
     status_mesin: "AKTIF",
     status_sewa: "BERAKHIR",
     status_letak: "NASABAH",
-    tanggal_pasang: "2025-07-15",
+    tanggal_pasang: "2025-08-15",
     estimasi_selesai: null,
     biaya_sewa: 1500000,
     sumber_data: ["VENDOR"]

@@ -120,6 +120,12 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground transition-all duration-400 ease-in-out;
+    @apply bg-background text-foreground;
   }
+}
+
+:root {
+  font-family: 'Noto Sans';
+  transition: all 0.2s ease-in-out;
+  scroll-behavior: smooth;
 }
