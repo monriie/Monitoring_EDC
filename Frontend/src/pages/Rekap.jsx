@@ -16,7 +16,7 @@ import { useFilters } from '@/hooks/useFilter'
 import { usePagination } from '@/hooks/usePagination'
 import { useExport } from '@/hooks/useExport'
 
-const Rekap = ({ onViewDetail, onAddMachine, filterData: initialFilterData }) => {
+const Rekap = ({ onViewDetail, filterData: initialFilterData }) => {
   const { machines } = useMachines()
   const { exportToPDF, exportToExcel } = useExport()
   
@@ -51,6 +51,11 @@ const Rekap = ({ onViewDetail, onAddMachine, filterData: initialFilterData }) =>
     }
   }, [initialFilterData, setFilterData])
 
+  // Trigger AddModal
+  const handleAddClick = () => {
+    window.dispatchEvent(new Event('openAddModal'))
+  }
+
   const newVendorCount = machines.filter(m => m.status_data === 'VENDOR_ONLY').length
 
   return (
@@ -67,7 +72,7 @@ const Rekap = ({ onViewDetail, onAddMachine, filterData: initialFilterData }) =>
           )}
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button onClick={onAddMachine} className="bg-green-600 hover:bg-green-700">
+          <Button onClick={handleAddClick} className="bg-green-600 hover:bg-green-700">
             <Plus size={16} className="md:mr-2" />
             Tambah Rekap
           </Button>

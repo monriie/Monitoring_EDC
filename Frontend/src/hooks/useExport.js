@@ -13,4 +13,4 @@ export const useExport = () => {
     exportToPDF,
     exportToExcel
   }
-}
+};

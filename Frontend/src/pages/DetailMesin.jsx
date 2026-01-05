@@ -1,5 +1,5 @@
 import React from 'react'
-import { Edit2, MapPin, Building2, Wrench, DollarSign, Database, Calendar, AlertTriangle, CheckCircle, Search } from 'lucide-react'
+import { Edit2, MapPin, Building2, Wrench, DollarSign, Calendar, AlertTriangle, CheckCircle, Search } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -11,13 +11,22 @@ import { formatCurrency } from '@/utils/formatter'
 import { useMachines } from '@/hooks/useMachine'
 import { useParams } from 'react-router'
 
-const DetailMesin = ({ onEdit }) => {
+const DetailMesin = () => {
   const { id } = useParams()
   const { machines } = useMachines()
 
   const machine = machines.find(
     m => String(m.terminal_id) === String(id)
   )
+  
+  // Trigger EditModal
+  const handleEditClick = () => {
+    if (machine) {
+      window.dispatchEvent(new CustomEvent('openEditModal', { 
+        detail: machine 
+      }))
+    }
+  }
   
   if (!machine) {
     return (
@@ -65,7 +74,7 @@ const DetailMesin = ({ onEdit }) => {
             </div>
           </div>
           <Button
-            onClick={() => onEdit(machine)}
+            onClick={handleEditClick}
             className="bg-[#00AEEF] hover:bg-[#0099D6] whitespace-nowrap"
           >
             <Edit2 size={16} className="mr-2" />
@@ -73,21 +82,6 @@ const DetailMesin = ({ onEdit }) => {
           </Button>
         </div>
       </div>
-
-      {/* Alert Section - Only show if needed */}
-      {/* {machine.status_mesin === 'PERBAIKAN' && daysOverdue > 0 && (
-        <Alert variant="destructive" className="border-2">
-          <AlertTriangle className="h-5 w-5" />
-          <AlertDescription>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-bold text-base">Overdue {daysOverdue} hari</p>
-                <p className="text-sm mt-0.5">Estimasi Kerugian: {formatCurrency(loss)}</p>
-              </div>
-            </div>
-          </AlertDescription>
-        </Alert>
-      )} */}
 
       {/* Main Content - Optimized Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
@@ -130,7 +124,6 @@ const DetailMesin = ({ onEdit }) => {
                   </div>
                 ))}
               </div>
-
             </div>
           </CardContent>
         </Card>

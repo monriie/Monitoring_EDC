@@ -18,7 +18,7 @@ const initialMachines = [
     status_letak: "NASABAH",
     tanggal_pasang: "2024-03-10",
     estimasi_selesai: null,
-    biaya_sewa: 150000,
+    biaya_sewa: 1500000,
     sumber_data: ["BANK", "VENDOR"]
   },
   {
@@ -34,7 +34,7 @@ const initialMachines = [
     status_letak: "VENDOR",
     tanggal_pasang: "2024-05-01",
     estimasi_selesai: "2024-12-28",
-    biaya_sewa: 150000,
+    biaya_sewa: 1500000,
     sumber_data: ["BANK"]
   },
   {
@@ -50,7 +50,7 @@ const initialMachines = [
     status_letak: "NASABAH",
     tanggal_pasang: "2025-07-12",
     estimasi_selesai: null,
-    biaya_sewa: 150000,
+    biaya_sewa: 1500000,
     sumber_data: ["VENDOR"]
   },
   {
@@ -66,7 +66,7 @@ const initialMachines = [
     status_letak: "BANK",
     tanggal_pasang: "2024-06-15",
     estimasi_selesai: null,
-    biaya_sewa: 150000,
+    biaya_sewa: 1500000,
     sumber_data: ["BANK", "VENDOR"]
   },
   {
@@ -82,7 +82,7 @@ const initialMachines = [
     status_sewa: "AKTIF",
     tanggal_pasang: "2024-08-20",
     estimasi_selesai: "2024-12-29",
-    biaya_sewa: 150000,
+    biaya_sewa: 1500000,
     sumber_data: ["BANK", "VENDOR"]
   },
   {
@@ -98,7 +98,7 @@ const initialMachines = [
     status_sewa: "AKTIF",
     tanggal_pasang: "2024-04-10",
     estimasi_selesai: "2024-12-25",
-    biaya_sewa: 150000,
+    biaya_sewa: 1500000,
     sumber_data: ["BANK", "VENDOR"]
   },
   {
@@ -114,7 +114,7 @@ const initialMachines = [
     status_letak: "NASABAH",
     tanggal_pasang: "2025-07-15",
     estimasi_selesai: null,
-    biaya_sewa: 150000,
+    biaya_sewa: 1500000,
     sumber_data: ["VENDOR"]
   }
 ];

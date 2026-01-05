@@ -21,17 +21,25 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { AlertTriangle, Info } from 'lucide-react'
 import syncMachineStatuses from '@/utils/statusSync'
 
-const EditModal = ({ isOpen, onClose, machine, onSave }) => {
+const EditModal = () => {
+  const [isOpen, setIsOpen] = useState(false)
   const [editingMachine, setEditingMachine] = useState(null)
   const [syncWarning, setSyncWarning] = useState(null)
 
+  // Listen for open event with machine data
   useEffect(() => {
-    if (machine) {
-      setEditingMachine({ ...machine })
+    const handleOpen = (e) => {
+      setEditingMachine({ ...e.detail })
+      setIsOpen(true)
     }
-  }, [machine])
+    window.addEventListener('openEditModal', handleOpen)
+    return () => window.removeEventListener('openEditModal', handleOpen)
+  }, [])
 
-  if (!editingMachine) return null
+  const handleClose = () => {
+    setIsOpen(false)
+    setSyncWarning(null)
+  }
 
   const handleFieldChange = (field, value) => {
     const { updated, warning } = syncMachineStatuses(
@@ -52,6 +60,8 @@ const EditModal = ({ isOpen, onClose, machine, onSave }) => {
   }
 
   const getLetakInfo = () => {
+    if (!editingMachine) return ''
+    
     switch (editingMachine.status_mesin) {
       case 'PERBAIKAN':
         return 'Mesin dalam perbaikan otomatis berada di Vendor.'
@@ -67,11 +77,18 @@ const EditModal = ({ isOpen, onClose, machine, onSave }) => {
   }
 
   const handleSave = () => {
-    onSave(editingMachine)
+    // Dispatch event with updated machine data
+    window.dispatchEvent(new CustomEvent('machineUpdated', { 
+      detail: editingMachine 
+    }))
+    
+    handleClose()
   }
 
+  if (!editingMachine) return null
+
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="min-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Edit Data Mesin EDC</DialogTitle>
@@ -292,7 +309,7 @@ const EditModal = ({ isOpen, onClose, machine, onSave }) => {
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={onClose}>
+          <Button variant="outline" onClick={handleClose}>
             Batal
           </Button>
           <Button

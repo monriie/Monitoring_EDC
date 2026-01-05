@@ -44,10 +44,42 @@ function TooltipContent({
         {...props}>
         {children}
         <TooltipPrimitive.Arrow
-          className="bg-foreground fill-foreground z-50 size-2.5 translate-y-[calc(-50%_-_2px)] rotate-45 rounded-[2px]" />
+          className="bg-foreground fill-foreground z-50 size-2.5 translate-y-[calc(-50%-2px)] rotate-45 rounded-[2px]" />
       </TooltipPrimitive.Content>
     </TooltipPrimitive.Portal>
   );
 }
 
-export { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider }
+// Custom Tooltip Component
+const CustomTooltip = ({ active, payload }) => {
+  if (active && payload && payload.length) {
+    return (
+      <div className="bg-gray-900 text-white px-3 py-2 rounded-lg shadow-lg text-sm">
+        <p className="font-semibold">{payload[0].name}</p>
+        <p className="text-xs opacity-90">{payload[0].value} mesin</p>
+      </div>
+    )
+  }
+  return null
+}
+
+// Custom Legend untuk mobile
+const CustomLegend = ({ payload }) => {
+  return (
+    <div className="flex flex-wrap justify-center gap-3 mt-4">
+      {payload.map((entry, index) => (
+        <div key={index} className="flex items-center gap-2">
+          <div 
+            className="w-3 h-3 rounded-full" 
+            style={{ backgroundColor: entry.color }}
+          />
+          <span className="text-sm text-gray-700">
+            {entry.value}
+          </span>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+export { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider, CustomTooltip, CustomLegend };

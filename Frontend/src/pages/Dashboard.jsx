@@ -9,8 +9,8 @@ import { calculateDaysOverdue } from '@/utils/dateUtils'
 import { getOverdueInfo } from '@/utils/helper'
 import { useMachines } from '@/hooks/useMachine'
 import { Link, useNavigate } from 'react-router'
-import DataBarChart from '@/components/charts/DataBarChart'
-import StatusPieChart from '@/components/charts/StatusPieChart'
+import DataBarChart from '@/components/chart/DataBarChart'
+import StatusPieChart from '@/components/chart/StatusPieChart'
 
 const Dashboard = () => {
   const { machines } = useMachines()

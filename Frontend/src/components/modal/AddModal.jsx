@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Plus, AlertTriangle } from 'lucide-react'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
@@ -6,7 +6,8 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 
-const AddModal = ({ isOpen, onClose, onAdd }) => {
+const AddModal = () => {
+  const [isOpen, setIsOpen] = useState(false)
   const [newMachine, setNewMachine] = useState({
     terminal_id: '',
     mid: '',
@@ -16,22 +17,27 @@ const AddModal = ({ isOpen, onClose, onAdd }) => {
     tipe_edc: '',
     status_data: 'VENDOR_ONLY',
     status_mesin: 'AKTIF',
-    status_sewa: 'BERAKHIR',
-    status_letak: 'NASABAH',
+    status_sewa: '',
+    status_letak: '',
     tanggal_pasang: new Date().toISOString().split('T')[0],
     estimasi_selesai: null,
-    biaya_sewa: 150000,
+    biaya_sewa: 1500000,
     sumber_data: ['VENDOR']
   })
 
-  const handleAdd = () => {
-    if (!newMachine.terminal_id || !newMachine.mid) {
-      alert('Terminal ID dan MID wajib diisi!')
-      return
-    }
+  // Listen for open event
+  useEffect(() => {
+    const handleOpen = () => setIsOpen(true)
+    window.addEventListener('openAddModal', handleOpen)
+    return () => window.removeEventListener('openAddModal', handleOpen)
+  }, [])
 
-    onAdd(newMachine)
-    
+  const handleClose = () => {
+    setIsOpen(false)
+    resetForm()
+  }
+
+  const resetForm = () => {
     setNewMachine({
       terminal_id: '',
       mid: '',
@@ -41,17 +47,31 @@ const AddModal = ({ isOpen, onClose, onAdd }) => {
       tipe_edc: '',
       status_data: 'VENDOR_ONLY',
       status_mesin: 'AKTIF',
-      status_sewa: 'BERAKHIR',
-      status_letak: 'NASABAH',
+      status_sewa: '',
+      status_letak: '',
       tanggal_pasang: new Date().toISOString().split('T')[0],
       estimasi_selesai: null,
-      biaya_sewa: 150000,
+      biaya_sewa: 1500000,
       sumber_data: ['VENDOR']
     })
   }
 
+  const handleAdd = () => {
+    if (!newMachine.terminal_id || !newMachine.mid) {
+      alert('Terminal ID dan MID wajib diisi!')
+      return
+    }
+
+    // Dispatch event with new machine data
+    window.dispatchEvent(new CustomEvent('machineAdded', { 
+      detail: newMachine 
+    }))
+    
+    handleClose()
+  }
+
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Tambah Rekap Mesin EDC</DialogTitle>
@@ -149,7 +169,7 @@ const AddModal = ({ isOpen, onClose, onAdd }) => {
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={onClose}>Batal</Button>
+          <Button variant="outline" onClick={handleClose}>Batal</Button>
           <Button onClick={handleAdd} className="bg-green-600 hover:bg-green-700">
             <Plus size={16} className="mr-2" />
             Tambah Mesin
