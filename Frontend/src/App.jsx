@@ -1,33 +1,38 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import React from 'react'
+import { Routes, Route, Navigate } from 'react-router'
 
-function App() {
-  const [count, setCount] = useState(0)
+// Layout
+import MainLayout from '@/components/layout/MainLayout'
 
+// Pages
+import Dashboard from '@/pages/Dashboard'
+import Overdue from '@/pages/Overdue'
+import Rekap from '@/pages/Rekap'
+import Sewa from '@/pages/Sewa'
+import DetailMesin from '@/pages/DetailMesin'
+
+// Modals
+import AddModal from '@/components/modal/AddModal'
+import EditModal from '@/components/modal/EditModal'
+
+const App = () => {
   return (
     <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
+      <Routes>
+        <Route element={<MainLayout />}>
+          <Route path="/" element={<Dashboard />} />
+          <Route path="/overdue" element={<Overdue />} />
+          <Route path="/rekap" element={<Rekap />} />
+          <Route path="/sewa" element={<Sewa />} />
+          <Route path="/mesin/:id" element={<DetailMesin />} />
+        </Route>
+
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+
+      {/* Global Modals - manage their own state */}
+      <AddModal />
+      <EditModal />
     </>
   )
 }
