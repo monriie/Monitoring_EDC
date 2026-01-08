@@ -12,20 +12,14 @@ import { useAuth } from "@/context/AuthContext"
 
 const Sidebar = () => {
   const location = useLocation()
-  const { user, isAdmin, logout } = useAuth()
-
-  // Menu items - hanya admin yang bisa lihat menu tertentu
+  const { logout } = useAuth()
   const menuItems = [
-    { icon: Home, label: "Dashboard", path: "/", roles: ["admin", "user"] },
-    { icon: LibraryBig, label: "Rekap", path: "/rekap", roles: ["admin"] },
-    { icon: Monitor, label: "Overdue", path: "/overdue", roles: ["admin"] },
-    { icon: ReceiptText, label: "Sewa", path: "/sewa", roles: ["admin"] },
+    { icon: Home, label: "Dashboard", path: "/"},
+    { icon: LibraryBig, label: "Rekap", path: "/rekap"},
+    { icon: Monitor, label: "Overdue", path: "/overdue"},
+    { icon: ReceiptText, label: "Sewa", path: "/sewa"},
   ]
 
-  // Filter menu berdasarkan role
-  const filteredMenuItems = menuItems.filter(item => 
-    item.roles.includes(user?.role)
-  )
 
   const isActive = (path) => location.pathname === path
 
@@ -34,7 +28,7 @@ const Sidebar = () => {
       <nav className="flex flex-col h-full py-6 justify-between">
         {/* Menu Items */}
         <ul className="space-y-1 md:space-y-2 px-2 md:pl-8 md:pr-4">
-          {filteredMenuItems.map((item) => {
+          {menuItems.map((item) => {
             const Icon = item.icon
             const active = isActive(item.path)
 
@@ -81,11 +75,10 @@ const Sidebar = () => {
         {/* User Info & Logout */}
         <div className="px-2 md:px-4 space-y-2">
           {/* User Info */}
-          <div className="flex items-center gap-3 px-3 py-2 bg-gray-50 rounded-lg">
-            <User className="w-5 h-5 text-gray-600" />
+          <div className="flex items-center gap-3 px-3 py-2 border border-gray-200 rounded-lg">
+            <User className="w-5 h-5 md:w-6 md:h-6" />
             <div className="hidden md:block">
-              <p className="text-sm font-medium text-gray-900">{user?.name}</p>
-              <p className="text-xs text-gray-500 capitalize">{user?.role}</p>
+              <p className="hidden md:inline text-sm md:text-base font-medium">admin</p>
             </div>
           </div>
 
