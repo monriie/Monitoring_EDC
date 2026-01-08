@@ -1,5 +1,15 @@
 import React from 'react'
-import { Edit2, MapPin, Building2, Wrench, DollarSign, Calendar, AlertTriangle, CheckCircle, Search } from 'lucide-react'
+import {
+  Edit2,
+  MapPin,
+  Building2,
+  Wrench,
+  DollarSign,
+  Calendar,
+  AlertTriangle,
+  CheckCircle,
+  Search,
+} from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -8,27 +18,30 @@ import StatusBadge from '@/components/common/StatusBadge'
 import { calculateDaysOverdue } from '@/utils/dateUtils'
 import { calculateLoss } from '@/utils/helper'
 import { formatCurrency } from '@/utils/formatter'
-import { useMachines } from '@/hooks/useMachine'
+import { useMesinDetail } from '@/hooks/useRekap'
 import { useParams } from 'react-router'
+import Loading from '@/components/common/Loading'
 
 const DetailMesin = () => {
   const { id } = useParams()
-  const { machines } = useMachines()
+  const { machine, loading, error } = useMesinDetail(id)
 
-  const machine = machines.find(
-    m => String(m.terminal_id) === String(id)
-  )
-  
   // Trigger EditModal
   const handleEditClick = () => {
     if (machine) {
-      window.dispatchEvent(new CustomEvent('openEditModal', { 
-        detail: machine 
-      }))
+      window.dispatchEvent(new CustomEvent('openEditModal', { detail: machine }))
     }
   }
-  
-  if (!machine) {
+
+  // Loading state
+  if (loading) {
+    return (
+      <Loading/>
+    )
+  }
+
+  // Error or not found
+  if (error || !machine) {
     return (
       <div className="flex items-center justify-center">
         <div className="text-center">
@@ -58,34 +71,30 @@ const DetailMesin = () => {
 
   return (
     <section className="space-y-6">
-      <Breadcrumb items={['Detail Mesin', machine.terminal_id]} />
-      
-      {/* Header Section - Compact */}
+      <Breadcrumb items={['Detail Mesin', machine.informasi_mesin.terminal_id]} />
+
+      {/* Header Section */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
         <div className="flex flex-row items-center justify-between gap-4">
           <div className="flex-1">
             <h1 className="text-2xl font-bold text-gray-900 mb-1">
-              TID {machine.terminal_id}
+              TID {machine.informasi_mesin.terminal_id}
             </h1>
             <div className="flex flex-wrap items-center gap-2 text-sm text-gray-600">
-              <span className="font-medium">MID {machine.mid}</span>
+              <span className="font-medium">MID {machine.informasi_mesin.mid}</span>
               <span className="text-gray-400">•</span>
-              <span>{machine.tipe_edc || 'N/A'}</span>
+              <span>{machine.informasi_mesin.tipe_edc || 'N/A'}</span>
             </div>
           </div>
-          <Button
-            onClick={handleEditClick}
-            className="bg-[#00AEEF] hover:bg-[#0099D6] whitespace-nowrap"
-          >
+          <Button onClick={handleEditClick} className="bg-[#00AEEF] hover:bg-[#0099D6] whitespace-nowrap">
             <Edit2 size={16} className="mr-2" />
             Edit Data
           </Button>
         </div>
       </div>
 
-      {/* Main Content - Optimized Grid */}
+      {/* Main Content */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        
         {/* Status Overview Card */}
         <Card className="lg:col-span-1 gap-3">
           <CardHeader>
@@ -97,32 +106,18 @@ const DetailMesin = () => {
           <CardContent className="grid grid-cols-2 gap-3">
             <div>
               <p className="text-xs text-gray-500 mb-1">Status Mesin</p>
-              <StatusBadge status={machine.status_mesin} />
-            </div>
-            <div>
-              <p className="text-xs text-gray-500 mb-1">Letak Mesin</p>
-              <StatusBadge status={machine.status_letak} />
+              <StatusBadge status={machine.informasi_mesin.status_mesin} />
             </div>
             <div>
               <p className="text-xs text-gray-500 mb-1">Status Data</p>
-              <StatusBadge status={machine.status_data} />
+              <StatusBadge status={machine.informasi_mesin.status_data} />
             </div>
-            <div>
-              <p className="text-xs text-gray-500 mb-1">Status Sewa</p>
-              <StatusBadge status={machine.status_sewa} />
-            </div>
-
             <div className="pt-4 border-t col-span-2 mt-2">
               <div className="flex flex-wrap gap-3">
-                {machine.sumber_data.map((sumber, idx) => (
-                  <div 
-                    key={idx} 
-                    className="flex items-center gap-2 bg-green-50 text-green-700 px-3 py-2 rounded-lg border border-green-200"
-                  >
-                    <CheckCircle size={16} />
-                    <span className="font-medium text-sm">{sumber}</span>
-                  </div>
-                ))}
+                <div className="flex items-center gap-2 bg-green-50 text-green-700 px-3 py-2 rounded-lg border border-green-200">
+                  <CheckCircle size={16} />
+                  <span className="font-medium text-sm">{machine.sumber_data}</span>
+                </div>
               </div>
             </div>
           </CardContent>
@@ -137,24 +132,16 @@ const DetailMesin = () => {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            <InfoItem 
-              label="Nama Nasabah" 
-              value={machine.nama_nasabah || 'Belum terdata'} 
+            <InfoItem
+              label="Nama Nasabah"
+              value={machine.informasi_lokasi.nama_nasabah || 'Belum terdata'}
               icon={Building2}
             />
-            <InfoItem 
-              label="Cabang Pengelola" 
-              value={machine.cabang} 
-              icon={Building2}
-            />
-            <InfoItem 
-              label="Kota" 
-              value={machine.kota} 
-              icon={MapPin}
-            />
-            <InfoItem 
-              label="Tanggal Pemasangan" 
-              value={machine.tanggal_pasang} 
+            <InfoItem label="Cabang Pengelola" value={machine.informasi_lokasi.cabang} icon={Building2} />
+            <InfoItem label="Kota" value={machine.informasi_lokasi.kota} icon={MapPin} />
+            <InfoItem
+              label="Tanggal Pemasangan"
+              value={machine.informasi_lokasi.tanggal_pasang}
               icon={Calendar}
             />
           </CardContent>
@@ -172,25 +159,33 @@ const DetailMesin = () => {
             <div>
               <p className="text-xs text-gray-600 mb-1">Biaya Sewa/Bulan</p>
               <p className="text-xl font-bold text-gray-900">
-                {formatCurrency(machine.biaya_sewa)}
+                {formatCurrency(machine.informasi_sewa.biaya_bulanan)}
               </p>
             </div>
-            
-            {machine.status_mesin === 'PERBAIKAN' && (
+
+            {machine.informasi_mesin.status_mesin === 'PERBAIKAN' && (
               <>
                 <div className="pt-2 border-t">
-                  <InfoItem 
-                    label="Estimasi Selesai" 
-                    value={machine.estimasi_selesai || 'Belum ada'} 
+                  <InfoItem
+                    label="Estimasi Selesai"
+                    value={machine.informasi_sewa.estimasi_selesai || 'Belum ada'}
                     icon={Calendar}
                   />
                 </div>
-                
+
                 {daysOverdue > 0 && (
                   <Alert className="bg-linear-to-br from-red-50 to-red-100 rounded-lg p-4 border border-red-200">
                     <AlertDescription>
-                      <p className="text-base text-gray-600 mb-1">Overdue : <span className="font-bold text-base text-[#ed1c24] mb-1">{daysOverdue} hari</span></p>
-                      <p className="text-base text-gray-600 mb-1">Estimasi Kerugian <span className="font-bold text-base md:text-xl text-[#ed1c24] flex flex-col">{formatCurrency(loss)}</span></p>
+                      <p className="text-base text-gray-600 mb-1">
+                        Overdue :{' '}
+                        <span className="font-bold text-base text-[#ed1c24] mb-1">{daysOverdue} hari</span>
+                      </p>
+                      <p className="text-base text-gray-600 mb-1">
+                        Estimasi Kerugian{' '}
+                        <span className="font-bold text-base md:text-xl text-[#ed1c24] flex flex-col">
+                          {formatCurrency(loss)}
+                        </span>
+                      </p>
                     </AlertDescription>
                   </Alert>
                 )}
