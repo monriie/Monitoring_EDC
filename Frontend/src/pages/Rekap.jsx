@@ -1,28 +1,27 @@
-import React from 'react'
-import { Plus, Download, AlertTriangle, FileText } from 'lucide-react'
+import React, { useState } from 'react'
+import { Plus, Download, AlertTriangle, FileText, Search } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
-import { Search } from 'lucide-react'
 import RekapTable from '@/components/table/RekapTable'
 import Pagination from '@/components/common/Pagination'
 import EmptyState from '@/components/common/EmptyState'
 import YearSortFilter from '@/components/common/YearSortFilter'
-import { useMachines } from '@/hooks/useMachine'
+import { useRekap } from '@/hooks/useRekap'
 import { useFilters } from '@/hooks/useFilter'
 import { usePagination } from '@/hooks/usePagination'
 import { useExport } from '@/hooks/useExport'
+import Loading from '@/components/common/Loading'
 
-const Rekap = ({ onViewDetail, filterData: initialFilterData }) => {
-  const { machines } = useMachines()
+const Rekap = () => {
+  const { machines, loading, error, fetchMachines } = useRekap()
   const { exportToPDF, exportToExcel } = useExport()
-  
+  const [searchTerm, setSearchTerm] = useState('')
+
   const {
-    searchTerm,
-    setSearchTerm,
     filterStatus,
     setFilterStatus,
     filterData,
@@ -35,31 +34,48 @@ const Rekap = ({ onViewDetail, filterData: initialFilterData }) => {
     setSortOrder,
     availableYears,
     availableBranches,
-    filteredData
+    filteredData,
   } = useFilters(machines)
 
-  const {
-    currentPage,
-    totalPages,
-    paginatedItems,
-    goToPage
-  } = usePagination(filteredData, 10)
+  const { currentPage, totalPages, paginatedItems, goToPage } = usePagination(filteredData, 10)
 
-  React.useEffect(() => {
-    if (initialFilterData) {
-      setFilterData(initialFilterData)
+  // Handle search with debounce
+  const handleSearch = (value) => {
+    setSearchTerm(value)
+    if (value.length >= 3 || value.length === 0) {
+      fetchMachines(value)
     }
-  }, [initialFilterData, setFilterData])
+  }
 
   // Trigger AddModal
   const handleAddClick = () => {
     window.dispatchEvent(new Event('openAddModal'))
   }
 
-  const newVendorCount = machines.filter(m => m.status_data === 'VENDOR_ONLY').length
+  const newVendorCount = machines.filter((m) => m.status_data === 'VENDOR_ONLY').length
+
+  // Loading state
+  if (loading && machines.length === 0) {
+    return (
+      <Loading/>
+    )
+  }
+
+  // Error state
+  if (error && machines.length === 0) {
+    return (
+      <section className="space-y-6">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+          <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-3" />
+          <h3 className="text-lg font-semibold text-red-800 mb-2">Failed to load rekap data</h3>
+          <p className="text-red-600">{error}</p>
+        </div>
+      </section>
+    )
+  }
 
   return (
-    <section className="space-y-6">     
+    <section className="space-y-6">
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Rekap Data Mesin EDC</h1>
@@ -80,13 +96,17 @@ const Rekap = ({ onViewDetail, filterData: initialFilterData }) => {
             <Download size={16} className="md:mr-2" />
             PDF
           </Button>
-          <Button onClick={() => exportToExcel(filteredData, 'rekap')} className="bg-[#00AEEF] hover:bg-[#26baf1]">
+          <Button
+            onClick={() => exportToExcel(filteredData, 'rekap')}
+            className="bg-[#00AEEF] hover:bg-[#26baf1]"
+          >
             <Download size={16} className="md:mr-2" />
             Excel
           </Button>
         </div>
       </header>
 
+      {/* Filter Section */}
       <Card>
         <CardContent>
           <div>
@@ -99,7 +119,7 @@ const Rekap = ({ onViewDetail, filterData: initialFilterData }) => {
                   placeholder="Terminal ID / Nasabah"
                   className="pl-9"
                   value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onChange={(e) => handleSearch(e.target.value)}
                 />
               </div>
             </div>
@@ -140,7 +160,7 @@ const Rekap = ({ onViewDetail, filterData: initialFilterData }) => {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Semua Cabang</SelectItem>
-                    {availableBranches.map(branch => (
+                    {availableBranches.map((branch) => (
                       <SelectItem key={branch} value={branch}>
                         {branch}
                       </SelectItem>
@@ -160,25 +180,19 @@ const Rekap = ({ onViewDetail, filterData: initialFilterData }) => {
         </CardContent>
       </Card>
 
+      {/* Table */}
       {filteredData.length === 0 ? (
         <Card>
           <CardContent className="p-12 text-center">
-            <EmptyState
-              icon={FileText}
-              title="Tidak ada data yang sesuai dengan filter"
-            />
+            <EmptyState icon={FileText} title="Tidak ada data yang sesuai dengan filter" />
           </CardContent>
         </Card>
       ) : (
         <Card>
           <CardContent>
-            <RekapTable machines={paginatedItems} onViewDetail={onViewDetail} />
+            <RekapTable machines={paginatedItems} />
             {totalPages > 1 && (
-              <Pagination 
-                currentPage={currentPage} 
-                totalPages={totalPages} 
-                onPageChange={goToPage} 
-              />
+              <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={goToPage} />
             )}
           </CardContent>
         </Card>
