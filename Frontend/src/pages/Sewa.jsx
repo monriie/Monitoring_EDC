@@ -16,6 +16,7 @@ import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { formatCurrency } from '@/utils/formatter'
 import Loading from '@/components/common/Loading'
+import EmptyState from '@/components/common/EmptyState'
 
 const Sewa = () => {
   const { summary, sewaList, loading, error, searchSewa } = useSewa()
@@ -219,14 +220,25 @@ const Sewa = () => {
       </Card>
 
       {/* Table */}
-      <Card>
-        <CardContent>
-          <SewaTable machines={paginatedItems} />
-          {totalPages > 1 && (
-            <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={goToPage} />
-          )}
-        </CardContent>
-      </Card>
+      {filteredData.length === 0 ? (
+        <Card>
+          <CardContent className="p-12 text-center">
+            <EmptyState
+              icon={FileText}
+              title="Tidak ada mesin yang di sewa"
+            />
+          </CardContent>
+        </Card>
+      ) : (
+        <Card>
+          <CardContent>
+            <SewaTable machines={paginatedItems} />
+            {totalPages > 1 && (
+              <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={goToPage} />
+            )}
+          </CardContent>
+        </Card>
+      )}
     </section>
   )
 }

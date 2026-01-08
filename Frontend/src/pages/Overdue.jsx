@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react'
-import { AlertTriangle, DollarSign, CheckCircle, Search } from 'lucide-react'
+import { AlertTriangle, DollarSign, CheckCircle, Search, FileText } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import StatCard from '@/components/common/StatCard'
 import OverdueTable from '@/components/table/OverdueTable'
@@ -184,7 +184,7 @@ const Overdue = () => {
         <Card>
           <CardContent className="p-12 text-center">
             <EmptyState
-              icon={CheckCircle}
+              icon={FileText}
               title="Tidak ada mesin overdue atau mendekati deadline"
             />
           </CardContent>
