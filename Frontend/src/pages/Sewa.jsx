@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react'
+import React, { useState } from 'react'
 import { Download, CheckCircle, FileText, DollarSign, AlertTriangle, Search } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -7,22 +7,23 @@ import StatCard from '@/components/common/StatCard'
 import SewaTable from '@/components/table/SewaTable'
 import Pagination from '@/components/common/Pagination'
 import YearSortFilter from '@/components/common/YearSortFilter'
-import { useMachines } from '@/hooks/useMachine'
+import { useSewa } from '@/hooks/useRekap'
 import { useFilters } from '@/hooks/useFilter'
 import { usePagination } from '@/hooks/usePagination'
 import { useExport } from '@/hooks/useExport'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { formatCurrency } from '@/utils/formatter'
+import Loading from '@/components/common/Loading'
 
 const Sewa = () => {
-  const { machines } = useMachines()
+  const { summary, sewaList, loading, error, searchSewa } = useSewa()
   const { exportToPDF, exportToExcel } = useExport()
+  const [searchTerm, setSearchTerm] = useState('')
 
   // Apply filters
   const {
-    searchTerm,
-    setSearchTerm,
     filterStatus,
     setFilterStatus,
     filterSewa,
@@ -37,37 +38,29 @@ const Sewa = () => {
     setSortOrder,
     availableYears,
     availableBranches,
-    availableLetak,
-    filteredData
-  } = useFilters(machines)
+    filteredData,
+  } = useFilters(sewaList)
 
   // Pagination
-  const {
-    currentPage,
-    totalPages,
-    paginatedItems,
-    goToPage
-  } = usePagination(filteredData, 10)
+  const { currentPage, totalPages, paginatedItems, goToPage } = usePagination(filteredData, 10)
 
-  // Calculate stats from ALL machines (not filtered)
-  const stats = useMemo(() => {
-    const activeRentals = machines.filter(m => m.status_sewa === 'AKTIF')
-    const totalActiveCost = activeRentals.reduce((sum, m) => sum + m.biaya_sewa, 0)
-    const inactiveCount = machines.filter(m => m.status_sewa === 'BERAKHIR').length
-    const brokenButActive = activeRentals.filter(m => 
-      m.status_mesin === 'RUSAK' || m.status_mesin === 'PERBAIKAN'
-    )
-
-    return {
-      activeRentals: activeRentals.length,
-      inactiveCount,
-      totalActiveCost,
-      brokenButActive
+  // Handle search
+  const handleSearch = (value) => {
+    setSearchTerm(value)
+    if (value.length >= 3 || value.length === 0) {
+      searchSewa(value)
     }
-  }, [machines])
+  }
 
   const handleStatClick = (status) => {
     setFilterSewa(status)
+  }
+
+  // Loading state
+  if (loading && sewaList.length === 0) {
+    return (
+      <Loading/>
+    )
   }
 
   return (
@@ -82,18 +75,22 @@ const Sewa = () => {
             <Download size={16} className="mr-2" />
             PDF
           </Button>
-          <Button onClick={() => exportToExcel(filteredData, 'sewa')} className="bg-[#00AEEF] hover:bg-[#26baf1]">
+          <Button
+            onClick={() => exportToExcel(filteredData, 'sewa')}
+            className="bg-[#00AEEF] hover:bg-[#26baf1]"
+          >
             <Download size={16} className="mr-2" />
             Excel
           </Button>
         </div>
       </header>
 
+      {/* Statistics */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div onClick={() => handleStatClick('AKTIF')} className="cursor-pointer">
           <StatCard
             title="Sewa Aktif"
-            value={stats.activeRentals}
+            value={summary.sewa_aktif}
             icon={CheckCircle}
             iconColor="text-green-600"
           />
@@ -102,7 +99,7 @@ const Sewa = () => {
         <div onClick={() => handleStatClick('BERAKHIR')} className="cursor-pointer">
           <StatCard
             title="Sewa Berakhir"
-            value={stats.inactiveCount}
+            value={summary.sewa_berakhir}
             icon={FileText}
             iconColor="text-[#ed1c24]"
           />
@@ -110,29 +107,30 @@ const Sewa = () => {
 
         <StatCard
           title="Total Sewa/Bulan"
-          value={`Rp ${stats.totalActiveCost.toLocaleString('id-ID')}`}
+          value={formatCurrency(summary.total_biaya_bulanan)}
           icon={DollarSign}
           iconColor="text-[#00AEEF]"
         />
 
         <StatCard
           title="Bermasalah"
-          value={stats.brokenButActive.length}
+          value={summary.bermasalah}
           icon={AlertTriangle}
           iconColor="text-[#ed1c24]"
         />
       </div>
 
-      {stats.brokenButActive.length > 0 && (
+      {summary.bermasalah > 0 && (
         <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription>
-            <span className="font-semibold">Perhatian!</span> {stats.brokenButActive.length} mesin dengan sewa aktif tetapi sedang rusak/perbaikan
+            <span className="font-semibold">Perhatian!</span> {summary.bermasalah} mesin dengan sewa
+            aktif tetapi sedang rusak/perbaikan
           </AlertDescription>
         </Alert>
       )}
 
-      {/* Filter Section */}
+      {/* Filters */}
       <Card>
         <CardContent>
           <div>
@@ -145,7 +143,7 @@ const Sewa = () => {
                   placeholder="Terminal ID / Nasabah"
                   className="pl-9"
                   value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onChange={(e) => handleSearch(e.target.value)}
                 />
               </div>
             </div>
@@ -186,7 +184,7 @@ const Sewa = () => {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Semua Cabang</SelectItem>
-                    {availableBranches.map(branch => (
+                    {availableBranches.map((branch) => (
                       <SelectItem key={branch} value={branch}>
                         {branch}
                       </SelectItem>
@@ -220,15 +218,12 @@ const Sewa = () => {
         </CardContent>
       </Card>
 
+      {/* Table */}
       <Card>
-        <CardContent >
-          <SewaTable machines={paginatedItems}/>
+        <CardContent>
+          <SewaTable machines={paginatedItems} />
           {totalPages > 1 && (
-            <Pagination 
-              currentPage={currentPage} 
-              totalPages={totalPages} 
-              onPageChange={goToPage} 
-            />
+            <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={goToPage} />
           )}
         </CardContent>
       </Card>
