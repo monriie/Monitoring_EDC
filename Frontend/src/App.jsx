@@ -4,6 +4,14 @@ import { Routes, Route, Navigate } from 'react-router'
 // Layout
 import MainLayout from '@/components/layout/MainLayout'
 
+// Route
+import ProtectedRoute from '@/routes/ProtectedRoute'
+import AdminRoute from '@/routes/AdminRoute'
+
+// Auth
+import AuthLayout from '@/components/layout/AuthLayout'
+import Login from '@/components/auth/Login'
+
 // Pages
 import Dashboard from '@/pages/Dashboard'
 import Overdue from '@/pages/Overdue'
@@ -19,18 +27,31 @@ const App = () => {
   return (
     <>
       <Routes>
-        <Route element={<MainLayout />}>
-          <Route path="/" element={<Dashboard />} />
-          <Route path="/overdue" element={<Overdue />} />
-          <Route path="/rekap" element={<Rekap />} />
-          <Route path="/sewa" element={<Sewa />} />
-          <Route path="/mesin/:id" element={<DetailMesin />} />
+          <Route element={<AuthLayout />}>
+            <Route path="/login" element={<Login />} />
+          </Route>
+
+        {/* Protected Routes - Memerlukan autentikasi */}
+        <Route element={<ProtectedRoute />}>
+          <Route element={<MainLayout />}>
+            {/* Dashboard - Semua user bisa akses */}
+            <Route path="/" element={<Dashboard />} />
+            
+            {/* Admin Only Routes */}
+            <Route element={<AdminRoute />}>
+              <Route path="/rekap" element={<Rekap />} />
+              <Route path="/overdue" element={<Overdue />} />
+              <Route path="/sewa" element={<Sewa />} />
+              <Route path="/mesin/:id" element={<DetailMesin />} />
+            </Route>
+          </Route>
         </Route>
 
+        {/* Redirect unknown routes */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
 
-      {/* Global Modals - manage their own state */}
+      {/* Global Modals - only visible to admins */}
       <AddModal />
       <EditModal />
     </>
