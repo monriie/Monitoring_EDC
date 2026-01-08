@@ -1,52 +1,48 @@
 import React, { useMemo } from 'react'
-import { MapPin, CheckCircle, AlertTriangle, Plus, ArrowBigRight, ArrowRight } from 'lucide-react'
+import { MapPin, CheckCircle, AlertTriangle, Plus, ArrowRight } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import StatCard from '@/components/common/StatCard'
 import StatusBadge from '@/components/common/StatusBadge'
 import { calculateDaysOverdue } from '@/utils/dateUtils'
-import { getOverdueInfo } from '@/utils/helper'
-import { useMachines } from '@/hooks/useMachine'
-import { Link, useNavigate } from 'react-router'
+import { Link } from 'react-router'
 import DataBarChart from '@/components/chart/DataBarChart'
 import StatusPieChart from '@/components/chart/StatusPieChart'
+import { useDashboard } from '@/hooks/useDashboard'
+import Loading from '@/components/common/Loading'
 
 const Dashboard = () => {
-  const { machines } = useMachines()
-  const navigation = useNavigate()
+  const { stats, mesinBaru, overdueList, loading, error } = useDashboard()
 
-  const stats = useMemo(() => {
-    const total = machines.length
-    const terdataBank = machines.filter(m => m.status_data === 'TERDATA_BANK').length
-    const vendorOnly = machines.filter(m => m.status_data === 'VENDOR_ONLY').length
-    
-    const today = new Date()
-    const overdue = machines.filter(m => {
-      const info = getOverdueInfo(m, today)
-      return info.isOverdue
-    })
+  // Transform overdue data for preview
+  const overduePreview = useMemo(() => {
+    return overdueList.slice(0, 5)
+  }, [overdueList])
 
-    const warning = machines.filter(m => {
-      const info = getOverdueInfo(m, today)
-      return info.isWarning
-    })
+  // Loading state
+  if (loading) {
+    return (
+      <Loading/>
+    )
+  }
 
-    
+  // Error state
+  if (error) {
+    return (
+      <section className="space-y-6">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+          <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-3" />
+          <h3 className="text-lg font-semibold text-red-800 mb-2">Failed to load dashboard</h3>
+          <p className="text-red-600 mb-4">{error}</p>
+          <Button onClick={() => window.location.reload()}>Retry</Button>
+        </div>
+      </section>
+    )
+  }
 
-    return {
-      total,
-      terdataBank,
-      vendorOnly,
-      overdue: overdue.length,
-      warning: warning.length,
-      overdueList: overdue,
-      warningList: warning
-    }
-  }, [machines])
-
-  const newVendorMachines = machines.filter(m => m.status_data === 'VENDOR_ONLY')
-  const overduePreview = [...stats.overdueList, ...stats.warningList].slice(0, 5)
+  // Calculate overdue count from stats
+  const overdueCount = stats.statusOverdue.find(s => s.status === 'overdue')?.total || 0
 
   return (
     <section className="space-y-6">
@@ -55,10 +51,11 @@ const Dashboard = () => {
         <p className="text-sm text-gray-500 mt-1">Sistem monitoring mesin EDC Bank Sumsel</p>
       </header>
       
+      {/* Stats Cards */}
       <div className="grid grid-cols-3 gap-3">
         <StatCard
           title="Total Mesin EDC"
-          value={stats.total}
+          value={stats.totalMesin}
           icon={MapPin}
           iconColor="text-[#00AEEF]"
         />
@@ -72,43 +69,44 @@ const Dashboard = () => {
 
         <StatCard
           title="Status Overdue"
-          value={stats.overdue}
+          value={overdueCount}
           icon={AlertTriangle}
           iconColor="text-[#ed1c24]"
         />
       </div>
 
+      {/* Charts */}
       <div className="grid grid-cols-2 gap-3">
-        <DataBarChart/>
-        <StatusPieChart/>
+        <DataBarChart data={stats.statusMesin} />
+        <StatusPieChart data={stats.statusMesin} />
       </div>
 
+      {/* Bottom Section */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Mesin Baru dari Vendor */}
         <Card className="lg:col-span-2">
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle>Mesin Baru dari Vendor</CardTitle>
-              <Badge variant="secondary">{newVendorMachines.length} Mesin</Badge>
+              <Badge variant="secondary">{mesinBaru.length} Mesin</Badge>
             </div>
             <CardDescription>Mesin yang dipasang vendor tapi belum terdata di bank</CardDescription>
           </CardHeader>
           <CardContent>
-            {newVendorMachines.length === 0 ? (
+            {mesinBaru.length === 0 ? (
               <div className="text-center py-12 text-gray-400">
                 <Plus size={48} className="mx-auto mb-3 opacity-50" />
                 <p className="font-medium">Tidak ada mesin baru dari vendor</p>
               </div>
             ) : (
               <div className="space-y-3">
-                {newVendorMachines.slice(0, 4).map(machine => (
+                {mesinBaru.slice(0, 4).map(machine => (
                   <Link key={machine.terminal_id} to={`/mesin/${machine.terminal_id}`}>
-                    <div 
-                      className="mb-3 bg-orange-50 p-4 rounded-lg border border-orange-200 cursor-pointer hover:shadow-md transition-all"
-                    >
+                    <div className="mb-3 bg-orange-50 p-4 rounded-lg border border-orange-200 cursor-pointer hover:shadow-md transition-all">
                       <div className="flex justify-between items-start mb-2">
                         <div>
                           <p className="font-semibold text-gray-900">{machine.terminal_id}</p>
-                          <p className="text-sm text-gray-600">{machine.tipe_edc}</p>
+                          <p className="text-sm text-gray-600">{machine.tipe_edc || 'N/A'}</p>
                         </div>
                         <StatusBadge status={machine.status_data} />
                       </div>
@@ -123,13 +121,10 @@ const Dashboard = () => {
                     </div>
                   </Link>
                 ))}
-                {newVendorMachines.length > 4 && (
-                  <Button
-                    variant="link" asChild
-                    className="w-full text-[#00AEEF]"
-                  >
+                {mesinBaru.length > 4 && (
+                  <Button variant="link" asChild className="w-full text-[#00AEEF]">
                     <Link to="/rekap">
-                      Lihat semua mesin baru <ArrowRight/>
+                      Lihat semua mesin baru <ArrowRight />
                     </Link>
                   </Button>
                 )}
@@ -138,6 +133,7 @@ const Dashboard = () => {
           </CardContent>
         </Card>
 
+        {/* Monitoring Overdue */}
         <Card>
           <CardHeader>
             <div className="flex items-center gap-2">
@@ -155,34 +151,28 @@ const Dashboard = () => {
             ) : (
               <div className="space-y-3">
                 {overduePreview.map(machine => {
-                  const days = calculateDaysOverdue(machine.estimasi_selesai)
-                  const isOverdue = days > 0
+                  const days = machine.terlambat_hari || 0
+                  const isOverdue = machine.status_perbaikan === 'overdue'
 
                   return (
-                    <div
-                      key={machine.terminal_id}
-                      className="bg-gray-50 p-3 rounded-lg cursor-pointer hover:bg-gray-100 transition-all border border-gray-200"
-                    >
-                    <Link to={`/mesin/${machine.terminal_id}`}>
-                      <div className="flex justify-between items-start mb-1">
-                        <div>
-                          <p className="text-sm font-semibold text-gray-900">{machine.terminal_id}</p>
-                          <p className="text-xs text-gray-500">{machine.nama_nasabah || 'N/A'}</p>
+                    <Link key={machine.terminal_id} to={`/mesin/${machine.terminal_id}`}>
+                      <div className="bg-gray-50 p-3 rounded-lg cursor-pointer hover:bg-gray-100 transition-all border border-gray-200">
+                        <div className="flex justify-between items-start mb-1">
+                          <div>
+                            <p className="text-sm font-semibold text-gray-900">{machine.terminal_id}</p>
+                            <p className="text-xs text-gray-500">{machine.nama_nasabah || 'N/A'}</p>
+                          </div>
+                          <Badge variant={isOverdue ? 'destructive' : 'warning'}>
+                            {isOverdue ? `${days}h Overdue` : 'Warning'}
+                          </Badge>
                         </div>
-                        <Badge variant={isOverdue ? 'destructive' : 'warning'}>
-                          {isOverdue ? `${days}h Overdue` : 'Warning'}
-                        </Badge>
                       </div>
                     </Link>
-                    </div>
                   )
                 })}
-                <Button
-                  variant="link" asChild
-                  className="w-full text-[#00AEEF]"
-                >
+                <Button variant="link" asChild className="w-full text-[#00AEEF]">
                   <Link to="/overdue">
-                    Lihat semua mesin overdue <ArrowRight/>
+                    Lihat semua mesin overdue <ArrowRight />
                   </Link>
                 </Button>
               </div>
