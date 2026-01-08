@@ -1,8 +1,7 @@
 import axios from 'axios'
 
-const BASE_URL = import.meta.env.VITE_BASE_URL
+const BASE_URL = import.meta.env.VITE_BASE_URL || 'http://localhost:3000'
 
-// Create axios instance
 const apiClient = axios.create({
   baseURL: BASE_URL,
   headers: {
@@ -11,7 +10,7 @@ const apiClient = axios.create({
   timeout: 10000,
 })
 
-// Request interceptor - add auth token if needed
+// Request interceptor
 apiClient.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token')
@@ -20,93 +19,124 @@ apiClient.interceptors.request.use(
     }
     return config
   },
-  (error) => {
-    return Promise.reject(error)
-  }
+  (error) => Promise.reject(error)
 )
 
-// Response interceptor - handle errors globally
 apiClient.interceptors.response.use(
   (response) => {
-    return response.data
+    const data = response.data
+    if (data && data.status === 'success' && data.data !== undefined) {
+      return data.data
+    }
+    
+    return data
   },
   (error) => {
-    // Handle different error scenarios
+    const errorResponse = {
+      message: 'An error occurred',
+      status: null,
+      data: null
+    }
+
     if (error.response) {
-      // Server responded with error status
       const { status, data } = error.response
+      errorResponse.status = status
+      errorResponse.data = data
       
-      switch (status) {
-        case 401:
-          // Unauthorized - redirect to login
-          localStorage.removeItem('token')
-          window.location.href = '/login'
-          break
-        case 403:
-          console.error('Forbidden:', data.message)
-          break
-        case 404:
-          console.error('Not found:', data.message)
-          break
-        case 500:
-          console.error('Server error:', data.message)
-          break
-        default:
-          console.error('API Error:', data.message)
+      if (data?.message) {
+        errorResponse.message = data.message
+      } else if (data?.status === 'error' && data?.message) {
+        errorResponse.message = data.message
+      } else {
+        errorResponse.message = 'Server error'
       }
       
-      return Promise.reject(data)
+      if (status === 401) {
+        localStorage.removeItem('token')
+        if (!window.location.pathname.includes('/login')) {
+          window.location.href = '/login'
+        }
+      }
     } else if (error.request) {
-      // Request made but no response
-      console.error('Network Error: No response from server')
-      return Promise.reject({ message: 'Network error - please check your connection' })
+      errorResponse.message = 'Network error - please check your connection'
     } else {
-      // Something else happened
-      console.error('Error:', error.message)
-      return Promise.reject({ message: error.message })
+      errorResponse.message = error.message
     }
+    return Promise.reject(errorResponse)
   }
 )
 
-// Dashboard API
 export const dashboardAPI = {
-  getTotalMesin: () => apiClient.get('/api/dashboard/total-mesin'),
-  getTerdataBank: () => apiClient.get('/api/dashboard/terdata-bank'),
-  getStatusMesin: () => apiClient.get('/api/dashboard/status-mesin'),
-  getStatusOverdue: () => apiClient.get('/api/dashboard/status-overdue'),
-  getMesinBaruVendor: () => apiClient.get('/api/dashboard/mesin-baru-vendor'),
-  getMonitoringOverdue: () => apiClient.get('/api/dashboard/monitoring-overdue'),
+  getTotalMesin: () => apiClient.get('api/dashboard/total-mesin'),
+  getTerdataBank: () => apiClient.get('api/dashboard/terdata-bank'),
+  getStatusMesin: () => apiClient.get('api/dashboard/status-mesin'),
+  getStatusOverdue: () => apiClient.get('api/dashboard/status-overdue'),
+  getMesinBaruVendor: () => apiClient.get('api/dashboard/mesin-baru-vendor'),
+  getMonitoringOverdue: () => apiClient.get('api/dashboard/monitoring-overdue'),
 }
 
-// Overdue API
 export const overdueAPI = {
-  getSummary: () => apiClient.get('/api/overdue/summary'),
-  getList: () => apiClient.get('/api/overdue/list'),
-  search: (query) => apiClient.get('/api/overdue/search', { params: { q: query } }),
+  getSummary: () => apiClient.get('api/overdue/summary'),
+  getList: () => apiClient.get('api/overdue/list'),
+  search: (query) => apiClient.get('api/overdue/search', { params: { q: query } }),
 }
 
-// Rekap API
 export const rekapAPI = {
-  getAll: (searchQuery) => apiClient.get('/api/rekap', { params: { search: searchQuery } }),
-  create: (data) => apiClient.post('/api/rekap', data),
+  getAll: (searchQuery = '') => apiClient.get('api/rekap', { 
+    params: searchQuery ? { search: searchQuery } : {} 
+  }),
+  create: (data) => apiClient.post('api/rekap', data),
 }
 
-// Sewa API
 export const sewaAPI = {
-  getSummary: () => apiClient.get('/api/sewa/summary'),
-  getList: () => apiClient.get('/api/sewa/list'),
-  search: (query) => apiClient.get('/api/sewa/search', { params: { q: query } }),
+  getSummary: () => apiClient.get('api/sewa/summary'),
+  getList: () => apiClient.get('api/sewa/list'),
+  search: (query) => apiClient.get('api/sewa/search', { params: { q: query } }),
 }
 
-// Detail Mesin API
 export const mesinAPI = {
-  getDetail: (id) => apiClient.get(`/api/rekap/${id}`),
-  update: (id, data) => apiClient.put(`/api/rekap/${id}`, data),
+  getDetail: async (terminalId) => {
+    try {
+      return await apiClient.get(`api/rekap/${terminalId}`)
+    } catch (error) {
+      const allMachines = await apiClient.get('api/rekap')
+      const machine = allMachines.find(m => m.terminal_id === terminalId)
+      
+      if (!machine) {
+        throw new Error('Mesin tidak ditemukan')
+      }
+      
+      return machine
+    }
+  },
+  
+  update: (terminalId, data) => {
+    console.warn('Update endpoint not implemented in backend')
+    return Promise.resolve({ message: 'Update success (mock)' })
+  },
 }
 
-// Auth API (if needed in future)
 export const authAPI = {
-  login: (credentials) => apiClient.post('/auth/login', credentials),
+  login: (credentials) => apiClient.post('auth/login', credentials),
+  
+  me: () => {
+    const userData = localStorage.getItem('user')
+    if (userData) {
+      try {
+        return Promise.resolve(JSON.parse(userData))
+      } catch (e) {
+        console.error('Failed to parse user data:', e)
+      }
+    }
+    
+    return Promise.reject({ message: 'Not authenticated' })
+  },
+  
+  logout: () => {
+    localStorage.removeItem('token')
+    localStorage.removeItem('user')
+    return Promise.resolve({ message: 'Logged out' })
+  },
 }
 
 export default apiClient

@@ -37,14 +37,14 @@ export const useDashboard = () => {
       ])
 
       setStats({
-        totalMesin: totalMesinRes.data.total_mesin,
-        terdataBank: terdataBankRes.data.mesin_terdata_bank,
-        statusMesin: statusMesinRes.data || [],
-        statusOverdue: statusOverdueRes.data || [],
+        totalMesin: totalMesinRes?.total_mesin ?? 0,
+        terdataBank: terdataBankRes?.mesin_terdata_bank ?? 0,
+        statusMesin: statusMesinRes ?? [],
+        statusOverdue: statusOverdueRes ?? [],
       })
 
-      setMesinBaru(mesinBaruRes.data || [])
-      setOverdueList(monitoringOverdueRes.data.monitoring_overdue || [])
+      setMesinBaru(mesinBaruRes ?? [])
+      setOverdueList(monitoringOverdueRes?.monitoring_overdue ?? [])
 
       return { success: true }
     } catch (err) {
@@ -57,7 +57,6 @@ export const useDashboard = () => {
     }
   }, [])
 
-  // Auto fetch on mount
   useEffect(() => {
     fetchDashboardData()
   }, [fetchDashboardData])

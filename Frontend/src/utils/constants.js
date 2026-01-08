@@ -3,6 +3,22 @@ export const NEW_MACHINE_THRESHOLD_DAYS = 30
 export const WARNING_THRESHOLD_DAYS = 3
 export const ITEMS_PER_PAGE = 10
 
+export const ERROR_TYPES = {
+  NETWORK: 'NETWORK_ERROR',
+  AUTH: 'AUTH_ERROR',
+  VALIDATION: 'VALIDATION_ERROR',
+  SERVER: 'SERVER_ERROR',
+  NOT_FOUND: 'NOT_FOUND'
+}
+
+export const ERROR_MESSAGES = {
+  NETWORK: 'Koneksi bermasalah. Periksa internet Anda.',
+  AUTH: 'Sesi berakhir. Silakan login kembali.',
+  VALIDATION: 'Data tidak valid. Periksa kembali input Anda.',
+  SERVER: 'Server sedang bermasalah. Coba lagi nanti.',
+  NOT_FOUND: 'Data tidak ditemukan.'
+}
+
 export const STATUS_MESIN = {
   AKTIF: 'AKTIF',
   PERBAIKAN: 'PERBAIKAN',

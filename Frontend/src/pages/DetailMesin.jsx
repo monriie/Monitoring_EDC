@@ -18,7 +18,7 @@ import StatusBadge from '@/components/common/StatusBadge'
 import { calculateDaysOverdue } from '@/utils/dateUtils'
 import { calculateLoss } from '@/utils/helper'
 import { formatCurrency } from '@/utils/formatter'
-import { useMesinDetail } from '@/hooks/useRekap'
+import { useMesinDetail } from '@/hooks/useMesinDetail'
 import { useParams } from 'react-router'
 import Loading from '@/components/common/Loading'
 
@@ -26,14 +26,12 @@ const DetailMesin = () => {
   const { id } = useParams()
   const { machine, loading, error } = useMesinDetail(id)
 
-  // Trigger EditModal
   const handleEditClick = () => {
     if (machine) {
       window.dispatchEvent(new CustomEvent('openEditModal', { detail: machine }))
     }
   }
 
-  // Loading state
   if (loading) {
     return (
       <Loading/>

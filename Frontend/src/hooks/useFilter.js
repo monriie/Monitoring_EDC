@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react'
+import { getOverdueInfo } from '@/utils/helper'
 
 export const useFilters = (data) => {
   const [searchTerm, setSearchTerm] = useState('')
@@ -60,8 +61,8 @@ export const useFilters = (data) => {
       
       // Status perbaikan filter (for Overdue page)
       let matchPerbaikan = true
-      if (filterPerbaikan !== 'all' && typeof window.getOverdueInfo === 'function') {
-        const overdueInfo = window.getOverdueInfo(item)
+      if (filterPerbaikan !== 'all') {
+        const overdueInfo = getOverdueInfo(item)
         if (filterPerbaikan === 'OVERDUE') {
           matchPerbaikan = overdueInfo.isOverdue
         } else if (filterPerbaikan === 'WARNING') {

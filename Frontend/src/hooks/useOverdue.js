@@ -74,7 +74,6 @@ export const useOverdue = () => {
     }
   }, [fetchList])
 
-  // Fetch all data on mount
   useEffect(() => {
     fetchSummary()
     fetchList()

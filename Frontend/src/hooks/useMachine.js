@@ -6,14 +6,14 @@ export const useMachines = () => {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
 
-  // Fetch semua mesin dari API
+  // Fetch semua mesin dari 
   const fetchMachines = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
       const response = await rekapAPI.getAll()
       // Sesuaikan dengan struktur response backend
-      setMachines(response.data.data || response.data)
+      setMachines(response.data || response)
     } catch (err) {
       setError(err.response?.data?.message || 'Gagal memuat data mesin')
       console.error('Error fetching machines:', err)
@@ -22,7 +22,6 @@ export const useMachines = () => {
     }
   }, [])
 
-  // Load data saat component mount
   useEffect(() => {
     fetchMachines()
   }, [fetchMachines])
@@ -31,8 +30,8 @@ export const useMachines = () => {
   const addMachine = useCallback(async (newMachine) => {
     try {
       const response = await rekapAPI.create(newMachine)
-      setMachines(prev => [...prev, response.data.data || response.data])
-      return { success: true, data: response.data }
+      setMachines(prev => [...prev, response.data || response.data])
+      return { success: true, data: response }
     } catch (err) {
       const errorMsg = err.response?.data?.message || 'Gagal menambah mesin'
       console.error('Error adding machine:', err)
@@ -47,11 +46,11 @@ export const useMachines = () => {
       setMachines(prev => 
         prev.map(m => 
           m.terminal_id === terminalId 
-            ? { ...m, ...(response.data.data || response.data) } 
+            ? { ...m, ...(response.data || response) } 
             : m
         )
       )
-      return { success: true, data: response.data }
+      return { success: true, data: response }
     } catch (err) {
       const errorMsg = err.response?.data?.message || 'Gagal memperbarui mesin'
       console.error('Error updating machine:', err)
@@ -59,7 +58,7 @@ export const useMachines = () => {
     }
   }, [])
 
-  // Delete mesin (jika backend support)
+  // Delete mesin
   const deleteMachine = useCallback((terminalId) => {
     setMachines(prev => prev.filter(m => m.terminal_id !== terminalId))
   }, [])
