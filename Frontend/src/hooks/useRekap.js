@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { rekapAPI, sewaAPI, mesinAPI } from '@/service/api'
+import { rekapAPI, sewaAPI } from '@/service/api'
 import toast from 'react-hot-toast'
 
 export const useRekap = () => {
@@ -14,12 +14,16 @@ export const useRekap = () => {
 
     try {
       const response = await rekapAPI.getAll(searchQuery)
-      setMachines(response.data || [])
-      return { success: true, data: response.data }
+      // Handle different response formats
+      const data = Array.isArray(response) ? response : []
+      setMachines(data)
+      return { success: true, data }
     } catch (err) {
       const errorMessage = err.message || 'Gagal memuat data rekap'
       setError(errorMessage)
-      toast.error(errorMessage)
+      console.error('Rekap fetch error:', errorMessage)
+      // Set empty array on error
+      setMachines([])
       return { success: false, error: errorMessage }
     } finally {
       setLoading(false)
@@ -35,7 +39,7 @@ export const useRekap = () => {
       const response = await rekapAPI.create(data)
       toast.success('Rekap mesin berhasil ditambahkan')
       await fetchMachines() // Refresh list
-      return { success: true, data: response.data }
+      return { success: true, data: response }
     } catch (err) {
       const errorMessage = err.message || 'Gagal menambahkan rekap'
       setError(errorMessage)
@@ -78,11 +82,18 @@ export const useSewa = () => {
 
     try {
       const response = await sewaAPI.getSummary()
-      setSummary(response)
+      // Ensure valid structure
+      setSummary({
+        sewa_aktif: response?.sewa_aktif || 0,
+        sewa_berakhir: response?.sewa_berakhir || 0,
+        total_biaya_bulanan: response?.total_biaya_bulanan || 0,
+        bermasalah: response?.bermasalah || 0,
+      })
       return { success: true, data: response }
     } catch (err) {
       const errorMessage = err.message || 'Gagal memuat summary sewa'
       setError(errorMessage)
+      console.error('Sewa summary error:', errorMessage)
       return { success: false, error: errorMessage }
     } finally {
       setLoading(false)
@@ -96,12 +107,13 @@ export const useSewa = () => {
 
     try {
       const response = await sewaAPI.getList()
-      setSewaList(response || [])
+      setSewaList(Array.isArray(response) ? response : [])
       return { success: true, data: response }
     } catch (err) {
       const errorMessage = err.message || 'Gagal memuat list sewa'
       setError(errorMessage)
-      toast.error(errorMessage)
+      console.error('Sewa list error:', errorMessage)
+      setSewaList([])
       return { success: false, error: errorMessage }
     } finally {
       setLoading(false)
@@ -120,7 +132,7 @@ export const useSewa = () => {
 
     try {
       const response = await sewaAPI.search(query)
-      setSewaList(response || [])
+      setSewaList(Array.isArray(response) ? response : [])
       return { success: true, data: response }
     } catch (err) {
       const errorMessage = err.message || 'Gagal mencari sewa'

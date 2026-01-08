@@ -20,11 +20,19 @@ export const useOverdue = () => {
 
     try {
       const response = await overdueAPI.getSummary()
-      setSummary(response.data)
-      return { success: true, data: response.data }
+      // Ensure we have valid data structure
+      setSummary({
+        total_perbaikan: response?.total_perbaikan || 0,
+        warning: response?.warning || 0,
+        overdue: response?.overdue || 0,
+        estimasi_kerugian: response?.estimasi_kerugian || 0,
+      })
+      return { success: true, data: response }
     } catch (err) {
       const errorMessage = err.message || 'Gagal memuat summary overdue'
       setError(errorMessage)
+      // Don't show toast on initial load
+      console.error('Overdue summary error:', errorMessage)
       return { success: false, error: errorMessage }
     } finally {
       setLoading(false)
@@ -38,12 +46,13 @@ export const useOverdue = () => {
 
     try {
       const response = await overdueAPI.getList()
-      setOverdueList(response.data || [])
-      return { success: true, data: response.data }
+      // Ensure array format
+      setOverdueList(Array.isArray(response) ? response : [])
+      return { success: true, data: response }
     } catch (err) {
       const errorMessage = err.message || 'Gagal memuat list overdue'
       setError(errorMessage)
-      toast.error(errorMessage)
+      console.error('Overdue list error:', errorMessage)
       return { success: false, error: errorMessage }
     } finally {
       setLoading(false)
@@ -62,8 +71,8 @@ export const useOverdue = () => {
 
     try {
       const response = await overdueAPI.search(query)
-      setOverdueList(response.data || [])
-      return { success: true, data: response.data }
+      setOverdueList(Array.isArray(response) ? response : [])
+      return { success: true, data: response }
     } catch (err) {
       const errorMessage = err.message || 'Gagal mencari overdue'
       setError(errorMessage)

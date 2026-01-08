@@ -25,8 +25,8 @@ apiClient.interceptors.request.use(
 apiClient.interceptors.response.use(
   (response) => {
     const data = response.data
-    if (data && data.status === 'success' && data.data !== undefined) {
-      return data.data
+    if (data && data.status === 'success') {
+      return data.data !== undefined ? data.data : data
     }
     
     return data
@@ -100,6 +100,7 @@ export const mesinAPI = {
       return await apiClient.get(`api/rekap/${terminalId}`)
     } catch (error) {
       const allMachines = await apiClient.get('api/rekap')
+      const machines = Array.isArray(allMachines) ? allMachines : []
       const machine = allMachines.find(m => m.terminal_id === terminalId)
       
       if (!machine) {
