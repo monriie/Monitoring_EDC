@@ -6,7 +6,6 @@ import MainLayout from '@/components/layout/MainLayout'
 
 // Route
 import ProtectedRoute from '@/routes/ProtectedRoute'
-import AdminRoute from '@/routes/AdminRoute'
 
 // Auth
 import AuthLayout from '@/components/layout/AuthLayout'
@@ -27,23 +26,19 @@ const App = () => {
   return (
     <>
       <Routes>
-          <Route element={<AuthLayout />}>
-            <Route path="/login" element={<Login />} />
-          </Route>
+        {/* Auth Routes */}
+        <Route element={<AuthLayout />}>
+          <Route path="/login" element={<Login />} />
+        </Route>
 
-        {/* Protected Routes - Memerlukan autentikasi */}
+        {/* Protected Routes - Semua user yang login bisa akses */}
         <Route element={<ProtectedRoute />}>
           <Route element={<MainLayout />}>
-            {/* Dashboard - Semua user bisa akses */}
             <Route path="/" element={<Dashboard />} />
-            
-            {/* Admin Only Routes */}
-            <Route element={<AdminRoute />}>
-              <Route path="/rekap" element={<Rekap />} />
-              <Route path="/overdue" element={<Overdue />} />
-              <Route path="/sewa" element={<Sewa />} />
-              <Route path="/mesin/:id" element={<DetailMesin />} />
-            </Route>
+            <Route path="/rekap" element={<Rekap />} />
+            <Route path="/overdue" element={<Overdue />} />
+            <Route path="/sewa" element={<Sewa />} />
+            <Route path="/mesin/:id" element={<DetailMesin />} />
           </Route>
         </Route>
 
@@ -51,7 +46,7 @@ const App = () => {
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
 
-      {/* Global Modals - only visible to admins */}
+      {/* Global Modals */}
       <AddModal />
       <EditModal />
     </>

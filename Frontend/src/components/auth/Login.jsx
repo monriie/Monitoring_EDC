@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { useAuth } from "@/context/AuthContext"
 import { Link } from "react-router"
+import Loading from "../common/Loading"
 
 export const Login = () => {
   const { login, loading } = useAuth()
@@ -92,10 +93,7 @@ export const Login = () => {
               disabled={loading}
             >
               {loading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Logging in...
-                </>
+                <Loading/>
               ) : (
                 
                 <p className="md:text-lg">

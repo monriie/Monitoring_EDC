@@ -10,17 +10,24 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true)
   const navigate = useNavigate()
 
-  // cek session ke backend
+  // Cek session dari localStorage
   useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const res = await authAPI.me()
-        setUser(res.data)
-      } catch {
-        setUser(null)
-      } finally {
-        setLoading(false)
+    const checkAuth = () => {
+      const token = localStorage.getItem("token")
+      const savedUser = localStorage.getItem("user")
+      
+      if (token && savedUser) {
+        try {
+          const userData = JSON.parse(savedUser)
+          setUser(userData)
+        } catch (error) {
+          console.error("Failed to parse user data:", error)
+          localStorage.removeItem("token")
+          localStorage.removeItem("user")
+        }
       }
+      
+      setLoading(false)
     }
 
     checkAuth()
@@ -30,8 +37,13 @@ export const AuthProvider = ({ children }) => {
     setLoading(true)
     try {
       const res = await authAPI.login({ username, password })
-      setUser(res)
+      
+      // Simpan user data (tanpa role check)
+      const userData = { username: res.user?.username || username }
+      
+      setUser(userData)
       localStorage.setItem("token", res.token)
+      localStorage.setItem("user", JSON.stringify(userData))
       
       toast.success("Login berhasil")
       navigate("/")
@@ -49,6 +61,8 @@ export const AuthProvider = ({ children }) => {
       await authAPI.logout()
     } finally {
       setUser(null)
+      localStorage.removeItem("token")
+      localStorage.removeItem("user")
       navigate("/login")
     }
   }
