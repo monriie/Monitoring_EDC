@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react'
+import React, { useMemo, useState } from 'react'
 import { AlertTriangle, DollarSign, CheckCircle, Search } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import StatCard from '@/components/common/StatCard'
@@ -6,36 +6,21 @@ import OverdueTable from '@/components/table/OverdueTable'
 import Pagination from '@/components/common/Pagination'
 import EmptyState from '@/components/common/EmptyState'
 import YearSortFilter from '@/components/common/YearSortFilter'
-import { useMachines } from '@/hooks/useMachine'
+import { useOverdue } from '@/hooks/useOverdue'
 import { useFilters } from '@/hooks/useFilter'
 import { usePagination } from '@/hooks/usePagination'
-import { getOverdueInfo, calculateLoss } from '@/utils/helper'
-import { calculateDaysOverdue } from '@/utils/dateUtils'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { formatCurrency } from '@/utils/formatter'
+import Loading from '@/components/common/Loading'
 
 const Overdue = () => {
-  const { machines: allMachines } = useMachines()
-
-  // Make getOverdueInfo globally accessible for filter
-  React.useEffect(() => {
-    window.getOverdueInfo = getOverdueInfo
-  }, [])
-
-  // Get all overdue and warning machines first
-  const overdueAndWarningMachines = useMemo(() => {
-    const today = new Date()
-    return allMachines.filter(m => {
-      const info = getOverdueInfo(m, today)
-      return info.isOverdue || info.isWarning || m.status_mesin === 'PERBAIKAN'
-    })
-  }, [allMachines])
+  const { summary, overdueList, loading, error, searchOverdue } = useOverdue()
+  const [searchTerm, setSearchTerm] = useState('')
 
   // Apply filters to overdue machines
   const {
-    searchTerm,
-    setSearchTerm,
     filterPerbaikan,
     setFilterPerbaikan,
     filterCabang,
@@ -49,68 +34,60 @@ const Overdue = () => {
     availableYears,
     availableBranches,
     availableLetak,
-    filteredData
-  } = useFilters(overdueAndWarningMachines)
+    filteredData,
+  } = useFilters(overdueList)
 
   // Pagination
-  const {
-    currentPage,
-    totalPages,
-    paginatedItems,
-    goToPage
-  } = usePagination(filteredData, 10)
+  const { currentPage, totalPages, paginatedItems, goToPage } = usePagination(filteredData, 10)
 
-  // Calculate stats from ALL repair machines (not filtered)
-  const stats = useMemo(() => {
-    const today = new Date()
-    const inRepairList = allMachines.filter(m => m.status_mesin === 'PERBAIKAN')
-    
-    const overdueList = inRepairList.filter(m => {
-      const info = getOverdueInfo(m, today)
-      return info.isOverdue
-    })
-
-    const warningList = inRepairList.filter(m => {
-      const info = getOverdueInfo(m, today)
-      return info.isWarning
-    })
-
-    const onTrackList = inRepairList.filter(m => {
-      const info = getOverdueInfo(m, today)
-      return !info.isOverdue && !info.isWarning
-    })
-
-    const allProblematic = [...overdueList, ...warningList]
-    const totalLoss = allProblematic.reduce((sum, m) => {
-      const days = calculateDaysOverdue(m.estimasi_selesai)
-      return sum + calculateLoss(m, days)
-    }, 0)
-
-    return {
-      onTrack: onTrackList.length,
-      warning: warningList.length,
-      overdue: overdueList.length,
-      totalLoss
+  // Handle search with debounce
+  const handleSearch = (value) => {
+    setSearchTerm(value)
+    if (value.length >= 3 || value.length === 0) {
+      searchOverdue(value)
     }
-  }, [allMachines])
+  }
 
   // Handle stat card click for filtering
   const handleStatClick = (status) => {
     setFilterPerbaikan(status)
   }
 
+  // Loading state
+  if (loading && overdueList.length === 0) {
+    return (
+      <Loading/>
+    )
+  }
+
+  // Error state
+  if (error && overdueList.length === 0) {
+    return (
+      <section className="space-y-6">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+          <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-3" />
+          <h3 className="text-lg font-semibold text-red-800 mb-2">Failed to load overdue data</h3>
+          <p className="text-red-600">{error}</p>
+        </div>
+      </section>
+    )
+  }
+
   return (
-    <section className="space-y-6">      
+    <section className="space-y-6">
       <header>
         <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Monitoring Overdue</h1>
-        <p className="text-sm text-gray-500 mt-1">Pantau mesin yang mendekati atau melewati estimasi perbaikan</p>
+        <p className="text-sm text-gray-500 mt-1">
+          Pantau mesin yang mendekati atau melewati estimasi perbaikan
+        </p>
       </header>
 
+      {/* Statistics Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div onClick={() => handleStatClick('PERBAIKAN')} className="cursor-pointer">
           <StatCard
             title="Perbaikan"
-            value={stats.onTrack}
+            value={summary.total_perbaikan - summary.warning - summary.overdue}
             icon={CheckCircle}
             iconColor="text-green-600"
           />
@@ -119,7 +96,7 @@ const Overdue = () => {
         <div onClick={() => handleStatClick('WARNING')} className="cursor-pointer">
           <StatCard
             title="Warning (≤3 hari)"
-            value={stats.warning}
+            value={summary.warning}
             icon={AlertTriangle}
             iconColor="text-yellow-600"
           />
@@ -128,7 +105,7 @@ const Overdue = () => {
         <div onClick={() => handleStatClick('OVERDUE')} className="cursor-pointer">
           <StatCard
             title="Overdue"
-            value={stats.overdue}
+            value={summary.overdue}
             icon={AlertTriangle}
             iconColor="text-[#ed1c24]"
           />
@@ -136,10 +113,9 @@ const Overdue = () => {
 
         <StatCard
           title="Estimasi Kerugian"
-          value={`Rp ${stats.totalLoss.toLocaleString('id-ID')}`}
+          value={formatCurrency(summary.estimasi_kerugian)}
           icon={DollarSign}
           iconColor="text-[#ed1c24]"
-          className="-nowrap"
         />
       </div>
 
@@ -156,7 +132,7 @@ const Overdue = () => {
                   placeholder="Terminal ID / Nasabah"
                   className="pl-9"
                   value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onChange={(e) => handleSearch(e.target.value)}
                 />
               </div>
             </div>
@@ -169,7 +145,7 @@ const Overdue = () => {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Semua Cabang</SelectItem>
-                    {availableBranches.map(branch => (
+                    {availableBranches.map((branch) => (
                       <SelectItem key={branch} value={branch}>
                         {branch}
                       </SelectItem>
@@ -203,6 +179,7 @@ const Overdue = () => {
         </CardContent>
       </Card>
 
+      {/* Table */}
       {filteredData.length === 0 ? (
         <Card>
           <CardContent className="p-12 text-center">
@@ -217,11 +194,7 @@ const Overdue = () => {
           <CardContent>
             <OverdueTable machines={paginatedItems} />
             {totalPages > 1 && (
-              <Pagination 
-                currentPage={currentPage} 
-                totalPages={totalPages} 
-                onPageChange={goToPage} 
-              />
+              <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={goToPage} />
             )}
           </CardContent>
         </Card>
