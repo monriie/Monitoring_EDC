@@ -24,8 +24,8 @@ const Sidebar = () => {
   const isActive = (path) => location.pathname === path
 
   return (
-    <aside className="fixed top-15.5 left-0 z-40 h-[calc(100vh-4rem)] bg-white shadow-sm w-16 md:w-52 transition-all duration-300">
-      <nav className="flex flex-col h-full py-6 justify-between">
+    <aside className="fixed top-15.5 left-0 z-40 h-full bg-white shadow-sm w-16 md:w-52 transition-all duration-300">
+      <nav className="flex flex-col h-full py-8 justify-between">
         {/* Menu Items */}
         <ul className="space-y-1 md:space-y-2 px-2 md:pl-8 md:pr-4">
           {menuItems.map((item) => {
@@ -73,7 +73,7 @@ const Sidebar = () => {
         </ul>
 
         {/* User Info & Logout */}
-        <div className="px-2 md:px-4 space-y-2">
+        <div className="px-2 md:px-4 md:ml-4 space-y-2">
           {/* User Info */}
           <div className="flex items-center gap-3 px-3 py-2 border border-gray-200 rounded-lg">
             <User className="w-5 h-5 md:w-6 md:h-6" />
@@ -85,7 +85,7 @@ const Sidebar = () => {
           {/* Logout Button */}
           <button
             onClick={logout}
-            className="w-full flex items-center gap-3 px-3 py-3 text-gray-600 hover:bg-red-50 hover:text-red-600 rounded-lg transition-all duration-200"
+            className="w-full flex items-center gap-3 px-3 py-2  pb-16 text-gray-600 hover:bg-red-50 hover:text-red-600 rounded-lg transition-all duration-200"
           >
             <LogOut className="w-5 h-5 md:w-6 md:h-6" />
             <span className="hidden md:inline text-sm md:text-base font-medium">

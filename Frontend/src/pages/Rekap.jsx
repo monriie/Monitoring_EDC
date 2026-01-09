@@ -184,7 +184,7 @@ const Rekap = () => {
       {filteredData.length === 0 ? (
         <Card>
           <CardContent className="p-12 text-center">
-            <EmptyState icon={FileText} title="Tidak ada data yang sesuai dengan filter" />
+            <EmptyState icon={FileText} title="Tidak ada data mesin yang terdaftar" />
           </CardContent>
         </Card>
       ) : (
