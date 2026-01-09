@@ -13,7 +13,7 @@ func GetDetailMesin(c *fiber.Ctx) error {
 	id := c.Params("id")
 
 	var mesin models.MesinEDC
-	if err := database.DB.First(&mesin, id).Error; err != nil {
+	if err := database.DB.Where("terminal_id = ?", id).First(&mesin).Error; err != nil {
 		return utils.Error(c, "Mesin tidak ditemukan")
 	}
 
@@ -69,7 +69,7 @@ func UpdateMesin(c *fiber.Ctx) error {
 	id := c.Params("id")
 
 	var mesin models.MesinEDC
-	if err := database.DB.First(&mesin, id).Error; err != nil {
+	if err := database.DB.Where("terminal_id = ?", id).First(&mesin).Error; err != nil {
 		return utils.Error(c, "Mesin tidak ditemukan")
 	}
 

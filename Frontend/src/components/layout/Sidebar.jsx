@@ -73,7 +73,7 @@ const Sidebar = () => {
         </ul>
 
         {/* User Info & Logout */}
-        <div className="px-2 md:px-4 md:ml-4 space-y-2">
+        <div className="px-2 pb-13 md:px-4 md:ml-4 space-y-2">
           {/* User Info */}
           <div className="flex items-center gap-3 px-3 py-2 border border-gray-200 rounded-lg">
             <User className="w-5 h-5 md:w-6 md:h-6" />
@@ -85,7 +85,7 @@ const Sidebar = () => {
           {/* Logout Button */}
           <button
             onClick={logout}
-            className="w-full flex items-center gap-3 px-3 py-2  pb-16 text-gray-600 hover:bg-red-50 hover:text-red-600 rounded-lg transition-all duration-200"
+            className="w-full flex items-center gap-3 px-3 py-2 text-gray-600 hover:bg-red-50 hover:text-red-600 rounded-lg transition-all duration-200"
           >
             <LogOut className="w-5 h-5 md:w-6 md:h-6" />
             <span className="hidden md:inline text-sm md:text-base font-medium">
