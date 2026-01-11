@@ -29,8 +29,8 @@ const Sewa = () => {
     setFilterStatus,
     filterSewa,
     setFilterSewa,
-    filterCabang,
-    setFilterCabang,
+    // filterCabang,
+    // setFilterCabang,
     filterLetak,
     setFilterLetak,
     filterYear,
@@ -88,7 +88,7 @@ const Sewa = () => {
 
       {/* Statistics */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div onClick={() => handleStatClick('AKTIF')} className="cursor-pointer">
+        <div>
           <StatCard
             title="Sewa Aktif"
             value={summary.sewa_aktif}
@@ -97,7 +97,7 @@ const Sewa = () => {
           />
         </div>
 
-        <div onClick={() => handleStatClick('BERAKHIR')} className="cursor-pointer">
+        <div>
           <StatCard
             title="Sewa Berakhir"
             value={summary.sewa_berakhir}
@@ -148,7 +148,7 @@ const Sewa = () => {
                 />
               </div>
             </div>
-            <div className="grid grid-cols-2 lg:grid-cols-6 gap-4 mt-4">
+            <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mt-4">
               <div>
                 <Label htmlFor="status-mesin">Status Mesin</Label>
                 <Select value={filterStatus} onValueChange={setFilterStatus}>
@@ -177,7 +177,7 @@ const Sewa = () => {
                   </SelectContent>
                 </Select>
               </div>
-              <div>
+              {/* <div>
                 <Label htmlFor="cabang">Cabang</Label>
                 <Select value={filterCabang} onValueChange={setFilterCabang}>
                   <SelectTrigger id="cabang" className="mt-2 w-full">
@@ -192,7 +192,7 @@ const Sewa = () => {
                     ))}
                   </SelectContent>
                 </Select>
-              </div>
+              </div> */}
               <div>
                 <Label htmlFor="letak">Letak Mesin</Label>
                 <Select value={filterLetak} onValueChange={setFilterLetak}>

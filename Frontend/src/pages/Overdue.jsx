@@ -95,7 +95,7 @@ const Overdue = () => {
 
         <div onClick={() => handleStatClick('WARNING')} className="cursor-pointer">
           <StatCard
-            title="Warning (≤3 hari)"
+            title="Warning (≤ 3 hari)"
             value={summary.warning}
             icon={AlertTriangle}
             iconColor="text-yellow-600"

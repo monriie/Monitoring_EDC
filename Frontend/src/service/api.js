@@ -53,8 +53,8 @@ apiClient.interceptors.response.use(
       
       if (status === 401) {
         localStorage.removeItem('token')
-        if (!window.location.pathname.includes('/login')) {
-          window.location.href = '/login'
+        if (!location.pathname.includes('/login')) {
+          location.href = '/login'
         }
       }
     } else if (error.request) {

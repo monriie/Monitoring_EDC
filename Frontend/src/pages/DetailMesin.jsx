@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import {
   Edit2,
   MapPin,
@@ -24,21 +24,67 @@ import Loading from '@/components/common/Loading'
 
 const DetailMesin = () => {
   const { id } = useParams()
-  const { machine, loading, error } = useMesinDetail(id)
+  const { machine, loading, error, updateMachine, fetchDetail } = useMesinDetail(id)
 
   const handleEditClick = () => {
     if (machine) {
-      window.dispatchEvent(new CustomEvent('openEditModal', { detail: machine }))
+      // Flatten data structure untuk edit modal
+      const flattenedMachine = {
+        terminal_id: machine.informasi_mesin?.terminal_id || '',
+        mid: machine.informasi_mesin?.mid || '',
+        nama_nasabah: machine.informasi_lokasi?.nama_nasabah || '',
+        kota: machine.informasi_lokasi?.kota || '',
+        cabang: machine.informasi_lokasi?.cabang || '',
+        tipe_edc: machine.informasi_mesin?.tipe_edc || '',
+        vendor: machine.informasi_mesin?.vendor || '',
+        status_mesin: machine.informasi_mesin?.status_mesin || 'AKTIF',
+        status_data: machine.informasi_mesin?.status_data || 'VENDOR_ONLY',
+        status_sewa: machine.informasi_sewa?.status_sewa || 'BERAKHIR',
+        status_letak: machine.informasi_lokasi?.status_letak || 'NASABAH',
+        tanggal_pasang: machine.informasi_lokasi?.tanggal_pasang || '',
+        biaya_sewa: machine.informasi_sewa?.biaya_bulanan || 0,
+        estimasi_selesai: machine.informasi_sewa?.estimasi_selesai || null,
+      }
+      
+      dispatchEvent(new CustomEvent('openEditModal', { detail: flattenedMachine }))
     }
   }
 
+  // Handle machine updated dari modal
+  useEffect(() => {
+    const handleMachineUpdated = async (e) => {
+      const updatedData = e.detail
+      
+      // Transform data ke format backend
+      const backendData = {
+        nama_nasabah: updatedData.nama_nasabah,
+        kota: updatedData.kota,
+        cabang: updatedData.cabang,
+        tipe_edc: updatedData.tipe_edc,
+        vendor: updatedData.vendor || '',
+        status_mesin: updatedData.status_mesin,
+        status_data: updatedData.status_data,
+        status_sewa: updatedData.status_sewa,
+        status_letak: updatedData.status_letak,
+        tanggal_pasang: updatedData.tanggal_pasang,
+        biaya_bulanan: updatedData.biaya_sewa,
+        estimasi_selesai: updatedData.estimasi_selesai,
+      }
+
+      const result = await updateMachine(backendData)
+      if (result.success) {
+        await fetchDetail() // Refresh detail
+      }
+    }
+
+    addEventListener('machineUpdated', handleMachineUpdated)
+    return () => removeEventListener('machineUpdated', handleMachineUpdated)
+  }, [updateMachine, fetchDetail])
+
   if (loading) {
-    return (
-      <Loading/>
-    )
+    return <Loading/>
   }
 
-  // Error or not found
   if (error || !machine) {
     return (
       <div className="flex items-center justify-center">
@@ -50,8 +96,8 @@ const DetailMesin = () => {
     )
   }
 
-  const daysOverdue = calculateDaysOverdue(machine.estimasi_selesai)
-  const loss = calculateLoss(machine, daysOverdue)
+  const daysOverdue = calculateDaysOverdue(machine.informasi_sewa?.estimasi_selesai)
+  const loss = calculateLoss({ biaya_sewa: machine.informasi_sewa?.biaya_bulanan || 0 }, daysOverdue)
 
   const InfoItem = ({ label, value, icon: Icon }) => (
     <div className="flex items-start gap-3 group">

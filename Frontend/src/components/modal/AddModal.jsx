@@ -28,8 +28,8 @@ const AddModal = () => {
   // Listen for open event
   useEffect(() => {
     const handleOpen = () => setIsOpen(true)
-    window.addEventListener('openAddModal', handleOpen)
-    return () => window.removeEventListener('openAddModal', handleOpen)
+    addEventListener('openAddModal', handleOpen)
+    return () => removeEventListener('openAddModal', handleOpen)
   }, [])
 
   const handleClose = () => {
@@ -63,7 +63,7 @@ const AddModal = () => {
     }
 
     // Dispatch event with new machine data
-    window.dispatchEvent(new CustomEvent('machineAdded', { 
+    dispatchEvent(new CustomEvent('machineAdded', { 
       detail: newMachine 
     }))
     

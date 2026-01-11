@@ -35,7 +35,7 @@ const Dashboard = () => {
           <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-3" />
           <h3 className="text-lg font-semibold text-red-800 mb-2">Failed to load dashboard</h3>
           <p className="text-red-600 mb-4">{error}</p>
-          <Button onClick={() => window.location.reload()}>Retry</Button>
+          <Button onClick={() => location.reload()}>Retry</Button>
         </div>
       </section>
     )

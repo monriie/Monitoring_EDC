@@ -32,8 +32,8 @@ const EditModal = () => {
       setEditingMachine({ ...e.detail })
       setIsOpen(true)
     }
-    window.addEventListener('openEditModal', handleOpen)
-    return () => window.removeEventListener('openEditModal', handleOpen)
+    addEventListener('openEditModal', handleOpen)
+    return () => removeEventListener('openEditModal', handleOpen)
   }, [])
 
   const handleClose = () => {
@@ -50,8 +50,8 @@ const EditModal = () => {
 
     if (warning) {
       setSyncWarning(warning)
-      clearTimeout(window.__syncTimeout)
-      window.__syncTimeout = setTimeout(() => {
+      clearTimeout(__syncTimeout)
+      __syncTimeout = setTimeout(() => {
         setSyncWarning(null)
       }, 3000)
     }
@@ -78,7 +78,7 @@ const EditModal = () => {
 
   const handleSave = () => {
     // Dispatch event with updated machine data
-    window.dispatchEvent(new CustomEvent('machineUpdated', { 
+    dispatchEvent(new CustomEvent('machineUpdated', { 
       detail: editingMachine 
     }))
     

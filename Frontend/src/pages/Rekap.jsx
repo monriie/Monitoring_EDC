@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Plus, Download, AlertTriangle, FileText, Search } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -17,7 +17,7 @@ import { useExport } from '@/hooks/useExport'
 import Loading from '@/components/common/Loading'
 
 const Rekap = () => {
-  const { machines, loading, error, fetchMachines } = useRekap()
+  const { machines, loading, error, fetchMachines, createMachine } = useRekap()
   const { exportToPDF, exportToExcel } = useExport()
   const [searchTerm, setSearchTerm] = useState('')
 
@@ -39,7 +39,7 @@ const Rekap = () => {
 
   const { currentPage, totalPages, paginatedItems, goToPage } = usePagination(filteredData, 10)
 
-  // Handle search with debounce
+  // Handle search dengan debounce
   const handleSearch = (value) => {
     setSearchTerm(value)
     if (value.length >= 3 || value.length === 0) {
@@ -49,19 +49,41 @@ const Rekap = () => {
 
   // Trigger AddModal
   const handleAddClick = () => {
-    window.dispatchEvent(new Event('openAddModal'))
+    dispatchEvent(new Event('openAddModal'))
   }
+
+  // Handle machine added dari modal
+  useEffect(() => {
+    const handleMachineAdded = async (e) => {
+      const newMachineData = e.detail
+      
+      // Transform frontend format ke backend format
+      const backendData = {
+        terminal_id: newMachineData.terminal_id,
+        mid: newMachineData.mid,
+        kota: newMachineData.kota,
+        cabang: newMachineData.cabang,
+        tipe_edc: newMachineData.tipe_edc,
+        tanggal_pasang: newMachineData.tanggal_pasang,
+        biaya_sewa_bulanan: newMachineData.biaya_sewa || 150000,
+      }
+
+      const result = await createMachine(backendData)
+      if (result.success) {
+        await fetchMachines()
+      }
+    }
+
+    addEventListener('machineAdded', handleMachineAdded)
+    return () => removeEventListener('machineAdded', handleMachineAdded)
+  }, [createMachine, fetchMachines])
 
   const newVendorCount = machines.filter((m) => m.status_data === 'VENDOR_ONLY').length
 
-  // Loading state
   if (loading && machines.length === 0) {
-    return (
-      <Loading/>
-    )
+    return <Loading/>
   }
 
-  // Error state
   if (error && machines.length === 0) {
     return (
       <section className="space-y-6">
@@ -135,7 +157,7 @@ const Rekap = () => {
                     <SelectItem value="AKTIF">Aktif</SelectItem>
                     <SelectItem value="PERBAIKAN">Perbaikan</SelectItem>
                     <SelectItem value="RUSAK">Rusak</SelectItem>
-                    <SelectItem value="TIDAK_AKTIF">Tidak Aktif</SelectItem>
+                    <SelectItem value="NONAKTIF">Nonaktif</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
