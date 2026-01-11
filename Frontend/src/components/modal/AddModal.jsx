@@ -1,334 +1,394 @@
 import React, { useState, useEffect } from 'react'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter
-} from '@/components/ui/dialog'
+import { Plus, Upload, FileSpreadsheet, X } from 'lucide-react'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue
-} from '@/components/ui/select'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { AlertTriangle, Info } from 'lucide-react'
-import syncMachineStatuses from '@/utils/statusSync'
+import { Card, CardContent } from '@/components/ui/card'
 
-const EditModal = () => {
+const AddModal = () => {
   const [isOpen, setIsOpen] = useState(false)
-  const [editingMachine, setEditingMachine] = useState(null)
-  const [syncWarning, setSyncWarning] = useState(null)
+  const [activeTab, setActiveTab] = useState('satuan') // 'satuan' or 'multi'
+  const [excelFile, setExcelFile] = useState(null)
+  const [previewData, setPreviewData] = useState([])
+  
+  // Form satuan
+  const [newMachine, setNewMachine] = useState({
+    terminal_id: '',
+    mid: '',
+    nama_nasabah: null,
+    kota: '',
+    cabang: '',
+    tipe_edc: '',
+    status_data: 'VENDOR_ONLY',
+    status_mesin: 'AKTIF',
+    status_sewa: '',
+    status_letak: '',
+    tanggal_pasang: new Date().toISOString().split('T')[0],
+    estimasi_selesai: null,
+    biaya_sewa: 1500000,
+    sumber_data: ['VENDOR']
+  })
 
+  // Listen for open event
   useEffect(() => {
-    const handleOpen = (e) => {
-      setEditingMachine({ ...e.detail })
-      setIsOpen(true)
-    }
-    window.addEventListener('openEditModal', handleOpen)
-    return () => window.removeEventListener('openEditModal', handleOpen)
+    const handleOpen = () => setIsOpen(true)
+    window.addEventListener('openAddModal', handleOpen)
+    return () => window.removeEventListener('openAddModal', handleOpen)
   }, [])
 
   const handleClose = () => {
     setIsOpen(false)
-    setSyncWarning(null)
+    setActiveTab('satuan')
+    resetForm()
+    resetExcelUpload()
   }
 
-  const handleFieldChange = (field, value) => {
-    const { updated, warning } = syncMachineStatuses(
-      editingMachine,
-      field,
-      value
-    )
+  const resetForm = () => {
+    setNewMachine({
+      terminal_id: '',
+      mid: '',
+      nama_nasabah: null,
+      kota: '',
+      cabang: '',
+      tipe_edc: '',
+      status_data: 'VENDOR_ONLY',
+      status_mesin: 'AKTIF',
+      status_sewa: '',
+      status_letak: '',
+      tanggal_pasang: new Date().toISOString().split('T')[0],
+      estimasi_selesai: null,
+      biaya_sewa: 1500000,
+      sumber_data: ['VENDOR']
+    })
+  }
 
-    if (warning) {
-      setSyncWarning(warning)
-      clearTimeout(window.__syncTimeout)
-      window.__syncTimeout = setTimeout(() => {
-        setSyncWarning(null)
-      }, 3000)
+  const resetExcelUpload = () => {
+    setExcelFile(null)
+    setPreviewData([])
+  }
+
+  // Handle satuan submit
+  const handleAddSatuan = () => {
+    if (!newMachine.terminal_id || !newMachine.mid) {
+      alert('Terminal ID dan MID wajib diisi!')
+      return
     }
 
-    setEditingMachine(updated)
-  }
-
-  const getLetakInfo = () => {
-    if (!editingMachine) return ''
-    
-    switch (editingMachine.status_mesin) {
-      case 'PERBAIKAN':
-        return 'Mesin dalam perbaikan otomatis berada di Vendor.'
-      case 'RUSAK':
-        return 'Mesin rusak otomatis berada di Bank untuk konfirmasi.'
-      case 'NONAKTIF':
-        return 'Mesin nonaktif dikembalikan ke Bank.'
-      case 'AKTIF':
-        return 'Mesin aktif biasanya berada di Nasabah.'
-      default:
-        return ''
-    }
-  }
-
-  const handleSave = () => {
-    window.dispatchEvent(new CustomEvent('machineUpdated', { 
-      detail: editingMachine 
+    window.dispatchEvent(new CustomEvent('machineAdded', { 
+      detail: newMachine 
     }))
     
     handleClose()
   }
 
-  if (!editingMachine) return null
+  // Handle file upload
+  const handleFileChange = async (e) => {
+    const file = e.target.files[0]
+    if (!file) return
+
+    // Validate file type
+    const validTypes = ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/vnd.ms-excel']
+    if (!validTypes.includes(file.type)) {
+      alert('File harus berformat Excel (.xlsx atau .xls)')
+      return
+    }
+
+    setExcelFile(file)
+
+    // Preview using FileReader (simplified - in production use SheetJS/xlsx library)
+    const reader = new FileReader()
+    reader.onload = (event) => {
+      // TODO: Parse Excel dengan library xlsx/SheetJS
+      // Untuk demo, kita set preview dummy
+      setPreviewData([
+        { terminal_id: '32090010', mid: '70910010', kota: 'Palembang', cabang: 'Ilir Barat' },
+        { terminal_id: '32090011', mid: '70910011', kota: 'Palembang', cabang: 'Plaju' },
+      ])
+    }
+    reader.readAsArrayBuffer(file)
+  }
+
+  // Handle multi upload submit
+  const handleAddMulti = () => {
+    if (!excelFile) {
+      alert('Pilih file Excel terlebih dahulu!')
+      return
+    }
+
+    // Dispatch event with Excel data
+    window.dispatchEvent(new CustomEvent('machinesAddedBulk', { 
+      detail: { file: excelFile, data: previewData }
+    }))
+    
+    handleClose()
+  }
+
+  const removeFile = () => {
+    resetExcelUpload()
+    // Reset file input
+    const fileInput = document.getElementById('excel-file')
+    if (fileInput) fileInput.value = ''
+  }
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="w-[95vw] max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Edit Data Mesin EDC</DialogTitle>
-          <DialogDescription>
-            Perbarui informasi mesin EDC
-          </DialogDescription>
+          <DialogTitle>Tambah Rekap Mesin EDC</DialogTitle>
+          <DialogDescription>Pilih metode penambahan data mesin</DialogDescription>
         </DialogHeader>
 
-        {syncWarning && (
-          <Alert>
-            <AlertTriangle className="h-4 w-4" />
-            <AlertDescription>{syncWarning}</AlertDescription>
-          </Alert>
-        )}
-
-        <div className="space-y-4 py-4">
-          {/* ID Section */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label>Terminal ID</Label>
-              <Input value={editingMachine.terminal_id} disabled className="mt-2" />
-            </div>
-            <div>
-              <Label>MID</Label>
-              <Input value={editingMachine.mid} disabled className="mt-2" />
-            </div>
-          </div>
-
-          {/* Nasabah */}
-          <div>
-            <Label>Nama Nasabah</Label>
-            <Input
-              value={editingMachine.nama_nasabah || ''}
-              onChange={(e) =>
-                setEditingMachine({
-                  ...editingMachine,
-                  nama_nasabah: e.target.value
-                })
-              }
-              className="mt-2"
-            />
-          </div>
-
-          {/* Lokasi */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label>Kota</Label>
-              <Input
-                value={editingMachine.kota || ''}
-                onChange={(e) =>
-                  setEditingMachine({ ...editingMachine, kota: e.target.value })
-                }
-                className="mt-2"
-              />
-            </div>
-            <div>
-              <Label>Cabang</Label>
-              <Input
-                value={editingMachine.cabang || ''}
-                onChange={(e) =>
-                  setEditingMachine({ ...editingMachine, cabang: e.target.value })
-                }
-                className="mt-2"
-              />
-            </div>
-          </div>
-
-          {/* Tipe */}
-          <div>
-            <Label>Tipe EDC</Label>
-            <Input
-              value={editingMachine.tipe_edc || ''}
-              onChange={(e) =>
-                setEditingMachine({
-                  ...editingMachine,
-                  tipe_edc: e.target.value
-                })
-              }
-              className="mt-2"
-            />
-          </div>
-
-          {/* Status Section - Responsive Grid */}
-          <div className="space-y-3">
-            <h3 className="font-semibold text-sm text-gray-700">Status & Kondisi</h3>
-            
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-              <div>
-                <Label className="text-xs">Status Mesin</Label>
-                <Select
-                  value={editingMachine.status_mesin}
-                  onValueChange={(val) =>
-                    handleFieldChange('status_mesin', val)
-                  }
-                >
-                  <SelectTrigger className="mt-1.5 h-9">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="AKTIF">Aktif</SelectItem>
-                    <SelectItem value="PERBAIKAN">Perbaikan</SelectItem>
-                    <SelectItem value="RUSAK">Rusak</SelectItem>
-                    <SelectItem value="NONAKTIF">Nonaktif</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <Label className="text-xs">Status Data</Label>
-                <Select
-                  value={editingMachine.status_data}
-                  onValueChange={(val) =>
-                    setEditingMachine({ ...editingMachine, status_data: val })
-                  }
-                >
-                  <SelectTrigger className="mt-1.5 h-9">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="TERDATA_BANK">Terdata Bank</SelectItem>
-                    <SelectItem value="VENDOR_ONLY">Vendor Only</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <Label className="text-xs">Status Sewa</Label>
-                <Select
-                  value={editingMachine.status_sewa}
-                  onValueChange={(val) =>
-                    handleFieldChange('status_sewa', val)
-                  }
-                >
-                  <SelectTrigger className="mt-1.5 h-9">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="AKTIF">Aktif</SelectItem>
-                    <SelectItem value="BERAKHIR">Berakhir</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <Label className="text-xs">Letak Mesin</Label>
-                <Select
-                  value={editingMachine.status_letak}
-                  onValueChange={(val) =>
-                    handleFieldChange('status_letak', val)
-                  }
-                >
-                  <SelectTrigger className="mt-1.5 h-9">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="NASABAH">Di Nasabah</SelectItem>
-                    <SelectItem value="VENDOR">Di Vendor</SelectItem>
-                    <SelectItem value="BANK">Di Bank</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            {getLetakInfo() && (
-              <Alert className="mt-2">
-                <Info className="h-4 w-4" />
-                <AlertDescription className="text-xs">
-                  {getLetakInfo()}
-                </AlertDescription>
-              </Alert>
-            )}
-          </div>
-
-          {/* Tanggal & Biaya */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label>Tanggal Pemasangan</Label>
-              <Input
-                type="date"
-                value={editingMachine.tanggal_pasang || ''}
-                onChange={(e) =>
-                  setEditingMachine({
-                    ...editingMachine,
-                    tanggal_pasang: e.target.value
-                  })
-                }
-                className="mt-2"
-              />
-            </div>
-            <div>
-              <Label>Biaya Sewa / Bulan (Rp)</Label>
-              <Input
-                type="number"
-                value={editingMachine.biaya_sewa || 0}
-                onChange={(e) =>
-                  setEditingMachine({
-                    ...editingMachine,
-                    biaya_sewa: parseInt(e.target.value) || 0
-                  })
-                }
-                className="mt-2"
-              />
-            </div>
-          </div>
-
-          {/* Estimasi Perbaikan - Conditional */}
-          {editingMachine.status_mesin === 'PERBAIKAN' && (
-            <div>
-              <Label>Estimasi Selesai Perbaikan</Label>
-              <Input
-                type="date"
-                value={editingMachine.estimasi_selesai || ''}
-                onChange={(e) =>
-                  setEditingMachine({
-                    ...editingMachine,
-                    estimasi_selesai: e.target.value
-                  })
-                }
-                className="mt-2"
-              />
-            </div>
-          )}
+        {/* Tabs Navigation */}
+        <div className="grid grid-cols-2 gap-2 border-b">
+          <button
+            onClick={() => setActiveTab('satuan')}
+            className={`px-4 py-2 font-medium transition-colors ${
+              activeTab === 'satuan'
+                ? 'border-b-2 border-[#00AEEF] text-[#00AEEF]'
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            Rekap Satuan
+          </button>
+          <button
+            onClick={() => setActiveTab('multi')}
+            className={`px-4 py-2 font-medium transition-colors ${
+              activeTab === 'multi'
+                ? 'border-b-2 border-[#00AEEF] text-[#00AEEF]'
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            Multi Rekap (Excel)
+          </button>
         </div>
 
-        <DialogFooter className="flex-col sm:flex-row gap-2">
-          <Button 
-            variant="outline" 
-            onClick={handleClose}
-            className="w-full sm:w-auto"
-          >
-            Batal
-          </Button>
-          <Button
-            onClick={handleSave}
-            className="bg-[#00AEEF] hover:bg-[#26baf1] w-full sm:w-auto"
-          >
-            Simpan Perubahan
-          </Button>
+        {/* Tab Content */}
+        {activeTab === 'satuan' && (
+          <div className="space-y-4 pt-4">
+            <Alert className="flex gap-3">
+              <AlertDescription className="space-y-1">
+                <p className="font-semibold text-sm">Info Default</p>
+
+                <div className="flex flex-wrap gap-2 text-sm">
+                  <span className="px-2 py-0.5 rounded-md bg-muted">
+                    Status Data: <b>VENDOR_ONLY</b>
+                  </span>
+                  <span className="px-2 py-0.5 rounded-md bg-muted">
+                    Status Mesin: <b>AKTIF</b>
+                  </span>
+                  <span className="px-2 py-0.5 rounded-md bg-muted">
+                    Status Sewa: <b>BERAKHIR</b>
+                  </span>
+                  <span className="px-2 py-0.5 rounded-md bg-muted">
+                    Letak: <b>NASABAH</b>
+                  </span>
+                </div>
+              </AlertDescription>
+            </Alert>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Terminal ID <span className="text-red-500">*</span></Label>
+                <Input
+                  placeholder="32090004"
+                  value={newMachine.terminal_id}
+                  onChange={(e) => setNewMachine({...newMachine, terminal_id: e.target.value})}
+                  className="mt-2"
+                />
+              </div>
+              <div>
+                <Label>MID <span className="text-red-500">*</span></Label>
+                <Input
+                  placeholder="70910004"
+                  value={newMachine.mid}
+                  onChange={(e) => setNewMachine({...newMachine, mid: e.target.value})}
+                  className="mt-2"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Kota</Label>
+                <Input
+                  placeholder="Palembang"
+                  value={newMachine.kota}
+                  onChange={(e) => setNewMachine({...newMachine, kota: e.target.value})}
+                  className="mt-2"
+                />
+              </div>
+              <div>
+                <Label>Cabang Pengelola</Label>
+                <Input
+                  placeholder="Ilir Barat"
+                  value={newMachine.cabang}
+                  onChange={(e) => setNewMachine({...newMachine, cabang: e.target.value})}
+                  className="mt-2"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Tipe EDC</Label>
+                <Input
+                  placeholder="Ingenico DX8000"
+                  value={newMachine.tipe_edc}
+                  onChange={(e) => setNewMachine({...newMachine, tipe_edc: e.target.value})}
+                  className="mt-2"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Tanggal Pemasangan</Label>
+                <Input
+                  type="date"
+                  value={newMachine.tanggal_pasang}
+                  onChange={(e) => setNewMachine({...newMachine, tanggal_pasang: e.target.value})}
+                  className="mt-2"
+                />
+              </div>
+              <div>
+                <Label>Biaya Sewa/Bulan (Rp)</Label>
+                <Input
+                  type="number"
+                  value={newMachine.biaya_sewa}
+                  onChange={(e) => setNewMachine({...newMachine, biaya_sewa: parseInt(e.target.value) || 0})}
+                  className="mt-2"
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'multi' && (
+          <div className="space-y-4 pt-4">
+            <Alert>
+              <FileSpreadsheet className="h-4 w-4" />
+              <AlertDescription>
+                <p className="font-semibold mb-2">Format Excel yang Dibutuhkan:</p>
+                <ul className="text-sm space-y-1 list-disc list-inside">
+                  <li>Kolom: TID, MID, Kota, Cabang, Tipe EDC, Tanggal Pasang, Biaya Sewa</li>
+                  <li>File maksimal 5MB</li>
+                  <li>Format: .xlsx atau .xls</li>
+                </ul>
+                <a 
+                  href="/template-rekap-mesin.xlsx" 
+                  className="text-[#00AEEF] hover:underline text-sm font-medium mt-2 inline-block"
+                  download
+                >
+                  Download Template Excel →
+                </a>
+              </AlertDescription>
+            </Alert>
+
+            {/* File Upload Area */}
+            <div className="border-2 border-dashed border-gray-300 rounded-lg p-8">
+              {!excelFile ? (
+                <div className="text-center">
+                  <Upload className="mx-auto h-12 w-12 text-gray-400" />
+                  <div className="mt-4">
+                    <label htmlFor="excel-file" className="cursor-pointer">
+                      <span className="mt-2 block text-sm font-medium text-gray-900">
+                        Klik untuk upload file Excel
+                      </span>
+                      <span className="mt-1 block text-xs text-gray-500">
+                        atau drag and drop file di sini
+                      </span>
+                    </label>
+                    <input
+                      id="excel-file"
+                      type="file"
+                      className="hidden"
+                      accept=".xlsx,.xls"
+                      onChange={handleFileChange}
+                    />
+                  </div>
+                  <p className="mt-2 text-xs text-gray-500">
+                    XLSX, XLS hingga 5MB
+                  </p>
+                </div>
+              ) : (
+                <div className="flex items-center justify-between bg-green-50 p-4 rounded-lg border border-green-200">
+                  <div className="flex items-center gap-3">
+                    <FileSpreadsheet className="h-8 w-8 text-green-600" />
+                    <div>
+                      <p className="font-medium text-gray-900">{excelFile.name}</p>
+                      <p className="text-sm text-gray-500">
+                        {(excelFile.size / 1024).toFixed(2)} KB
+                      </p>
+                    </div>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={removeFile}
+                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                  >
+                    <X size={18} />
+                  </Button>
+                </div>
+              )}
+            </div>
+
+            {/* Preview Data */}
+            {previewData.length > 0 && (
+              <Card>
+                <CardContent className="pt-6">
+                  <h4 className="font-semibold mb-3">Preview Data ({previewData.length} mesin)</h4>
+                  <div className="max-h-48 overflow-y-auto">
+                    <table className="w-full text-sm">
+                      <thead className="bg-gray-50 sticky top-0">
+                        <tr>
+                          <th className="px-3 py-2 text-left">Terminal ID</th>
+                          <th className="px-3 py-2 text-left">MID</th>
+                          <th className="px-3 py-2 text-left">Kota</th>
+                          <th className="px-3 py-2 text-left">Cabang</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {previewData.map((item, idx) => (
+                          <tr key={idx} className="border-b">
+                            <td className="px-3 py-2">{item.terminal_id}</td>
+                            <td className="px-3 py-2">{item.mid}</td>
+                            <td className="px-3 py-2">{item.kota}</td>
+                            <td className="px-3 py-2">{item.cabang}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        )}
+
+        <DialogFooter>
+          <Button variant="outline" onClick={handleClose}>Batal</Button>
+          {activeTab === 'satuan' ? (
+            <Button onClick={handleAddSatuan} className="bg-green-600 hover:bg-green-700">
+              <Plus size={16} className="mr-2" />
+              Tambah Mesin
+            </Button>
+          ) : (
+            <Button 
+              onClick={handleAddMulti} 
+              className="bg-green-600 hover:bg-green-700"
+              disabled={!excelFile}
+            >
+              <Upload size={16} className="mr-2" />
+              Upload {previewData.length} File
+            </Button>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>
   )
 }
 
-export default EditModal;
+export default AddModal;

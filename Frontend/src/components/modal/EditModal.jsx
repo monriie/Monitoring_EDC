@@ -89,7 +89,7 @@ const EditModal = () => {
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="min-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="lg:min-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Edit Data Mesin EDC</DialogTitle>
           <DialogDescription>
@@ -172,7 +172,7 @@ const EditModal = () => {
           </div>
 
           {/* Status */}
-          <div className="grid grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div>
               <Label>Status Mesin</Label>
               <Select
