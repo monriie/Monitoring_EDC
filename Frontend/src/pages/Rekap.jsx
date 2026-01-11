@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import { Plus, Download, AlertTriangle, FileText, Search } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -10,6 +10,7 @@ import RekapTable from '@/components/table/RekapTable'
 import Pagination from '@/components/common/Pagination'
 import EmptyState from '@/components/common/EmptyState'
 import YearSortFilter from '@/components/common/YearSortFilter'
+import ExportYearFilterModal from '@/components/modal/ExportYearFilterModal'
 import { useRekap } from '@/hooks/useRekap'
 import { useFilters } from '@/hooks/useFilter'
 import { usePagination } from '@/hooks/usePagination'
@@ -17,9 +18,13 @@ import { useExport } from '@/hooks/useExport'
 import Loading from '@/components/common/Loading'
 
 const Rekap = () => {
-  const { machines, loading, error, fetchMachines, createMachine } = useRekap()
-  const { exportToPDF, exportToExcel } = useExport()
+  const { machines, loading, error, fetchMachines } = useRekap()
+  const { exportToPDF, exportToExcel, getAvailableYears } = useExport()
   const [searchTerm, setSearchTerm] = useState('')
+  
+  // Export modal states
+  const [showExportModal, setShowExportModal] = useState(false)
+  const [exportType, setExportType] = useState('pdf') // 'pdf' or 'excel'
 
   const {
     filterStatus,
@@ -39,7 +44,6 @@ const Rekap = () => {
 
   const { currentPage, totalPages, paginatedItems, goToPage } = usePagination(filteredData, 10)
 
-  // Handle search dengan debounce
   const handleSearch = (value) => {
     setSearchTerm(value)
     if (value.length >= 3 || value.length === 0) {
@@ -47,41 +51,35 @@ const Rekap = () => {
     }
   }
 
-  // Trigger AddModal
   const handleAddClick = () => {
-    dispatchEvent(new Event('openAddModal'))
+    window.dispatchEvent(new Event('openAddModal'))
   }
 
-  // Handle machine added dari modal
-  useEffect(() => {
-    const handleMachineAdded = async (e) => {
-      const newMachineData = e.detail
-      
-      // Transform frontend format ke backend format
-      const backendData = {
-        terminal_id: newMachineData.terminal_id,
-        mid: newMachineData.mid,
-        kota: newMachineData.kota,
-        cabang: newMachineData.cabang,
-        tipe_edc: newMachineData.tipe_edc,
-        tanggal_pasang: newMachineData.tanggal_pasang,
-        biaya_sewa_bulanan: newMachineData.biaya_sewa || 150000,
-      }
+  // Handle export button clicks
+  const handleExportPDFClick = () => {
+    setExportType('pdf')
+    setShowExportModal(true)
+  }
 
-      const result = await createMachine(backendData)
-      if (result.success) {
-        await fetchMachines()
-      }
+  const handleExportExcelClick = () => {
+    setExportType('excel')
+    setShowExportModal(true)
+  }
+
+  // Handle actual export with selected years
+  const handleExport = (selectedYears) => {
+    if (exportType === 'pdf') {
+      exportToPDF(filteredData, selectedYears, 'rekap-mesin')
+    } else {
+      exportToExcel(filteredData, selectedYears, 'rekap-mesin')
     }
-
-    addEventListener('machineAdded', handleMachineAdded)
-    return () => removeEventListener('machineAdded', handleMachineAdded)
-  }, [createMachine, fetchMachines])
+  }
 
   const newVendorCount = machines.filter((m) => m.status_data === 'VENDOR_ONLY').length
+  const yearsForExport = getAvailableYears(filteredData)
 
   if (loading && machines.length === 0) {
-    return <Loading/>
+    return <Loading />
   }
 
   if (error && machines.length === 0) {
@@ -111,19 +109,24 @@ const Rekap = () => {
         </div>
         <div className="flex flex-wrap gap-2">
           <Button onClick={handleAddClick} className="bg-green-600 hover:bg-green-700">
-            <Plus size={16} className="md:mr-2" />
-            Tambah Rekap
+            <Plus size={16} className="mr-2" />
+            <span className="hidden sm:inline">Tambah Rekap</span>
           </Button>
-          <Button onClick={() => exportToPDF(filteredData, 'rekap')} variant="destructive">
-            <Download size={16} className="md:mr-2" />
-            PDF
+          <Button 
+            onClick={handleExportPDFClick} 
+            variant="destructive"
+            disabled={filteredData.length === 0}
+          >
+            <Download size={16} className="mr-2" />
+            <span className="hidden sm:inline">PDF</span>
           </Button>
           <Button
-            onClick={() => exportToExcel(filteredData, 'rekap')}
+            onClick={handleExportExcelClick}
             className="bg-[#00AEEF] hover:bg-[#26baf1]"
+            disabled={filteredData.length === 0}
           >
-            <Download size={16} className="md:mr-2" />
-            Excel
+            <Download size={16} className="mr-2" />
+            <span className="hidden sm:inline">Excel</span>
           </Button>
         </div>
       </header>
@@ -157,7 +160,7 @@ const Rekap = () => {
                     <SelectItem value="AKTIF">Aktif</SelectItem>
                     <SelectItem value="PERBAIKAN">Perbaikan</SelectItem>
                     <SelectItem value="RUSAK">Rusak</SelectItem>
-                    <SelectItem value="NONAKTIF">Nonaktif</SelectItem>
+                    <SelectItem value="TIDAK_AKTIF">Tidak Aktif</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -219,6 +222,15 @@ const Rekap = () => {
           </CardContent>
         </Card>
       )}
+
+      {/* Export Year Filter Modal */}
+      <ExportYearFilterModal
+        isOpen={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        onExport={handleExport}
+        availableYears={yearsForExport}
+        exportType={exportType}
+      />
     </section>
   )
 }
