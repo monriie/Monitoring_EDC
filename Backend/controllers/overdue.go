@@ -3,11 +3,12 @@ package controllers
 import (
 	"time"
 
-	"github.com/gofiber/fiber/v2"
 	"backend/database"
 	"backend/models"
-	"backend/utils"
 	"backend/models/dto"
+	"backend/utils"
+
+	"github.com/gofiber/fiber/v2"
 )
 
 func GetOverdueSummary(c *fiber.Ctx) error {
@@ -37,7 +38,7 @@ func GetOverdueSummary(c *fiber.Ctx) error {
 
 		totalPerbaikan++
 
-		p := m.Perbaikan[0] // 1 mesin = 1 perbaikan aktif
+		p := m.Perbaikan[0]
 
 		if p.EstimasiPerbaikan == nil {
 			continue
@@ -56,18 +57,17 @@ func GetOverdueSummary(c *fiber.Ctx) error {
 	}
 
 	return utils.Success(c, fiber.Map{
-		"total_perbaikan":  totalPerbaikan,
-		"warning":          warning,
-		"overdue":          overdue,
+		"total_perbaikan":   totalPerbaikan,
+		"warning":           warning,
+		"overdue":           overdue,
 		"estimasi_kerugian": totalKerugian,
 	})
 }
 
 func GetOverdueList(c *fiber.Ctx) error {
 	var mesin []models.MesinEDC
-	db := database.DB
 
-	err := db.
+	err := database.DB.
 		Preload("Perbaikan").
 		Preload("Sewa").
 		Where("status_mesin = ?", "perbaikan").
@@ -78,7 +78,7 @@ func GetOverdueList(c *fiber.Ctx) error {
 	}
 
 	now := time.Now()
-	var result []dto.OverdueMesinResponse
+	var result []dto.MachineResponse
 
 	for _, m := range mesin {
 		if len(m.Perbaikan) == 0 {
@@ -87,35 +87,51 @@ func GetOverdueList(c *fiber.Ctx) error {
 
 		p := m.Perbaikan[0]
 
-		status := "perbaikan"
-		terlambat := 0
+		status := "PERBAIKAN"
 		kerugian := 0
 
 		if p.EstimasiPerbaikan != nil {
 			diff := int(now.Sub(*p.EstimasiPerbaikan).Hours() / 24)
 
 			if diff >= 3 {
-				status = "overdue"
-				terlambat = diff
+				status = "OVERDUE"
 				if m.Sewa != nil {
 					kerugian = m.Sewa.BiayaBulanan
 				}
 			} else if diff >= 0 {
-				status = "warning"
-				terlambat = diff
+				status = "WARNING"
 			}
 		}
 
-		result = append(result, dto.OverdueMesinResponse{
-			TerminalID:        m.TerminalID,
-			NamaNasabah:       utils.GetNamaNasabah(m.NamaNasabah, m.StatusData),
-			LokasiMesin:       m.LetakMesin,
-			TanggalPasang:     m.TanggalPasang,
-			EstimasiPerbaikan: p.EstimasiPerbaikan,
-			TerlambatHari:     terlambat,
-			StatusPerbaikan:   status,
-			Kerugian:          kerugian,
-		})
+		machineResp := dto.MachineResponse{
+			ID:          m.ID,
+			TerminalID:  m.TerminalID,
+			MID:         m.MID,
+			NamaNasabah: utils.GetNamaNasabah(m.NamaNasabah, m.StatusData),
+			Kota:        m.Kota,
+			Cabang:     m.Cabang,
+			TipeEDC:    m.TipeEDC,
+
+			StatusMesin: status,
+			StatusData:  dto.MapStatusData(m.StatusData),
+			StatusLetak: dto.MapStatusLetak(m.LetakMesin),
+			BiayaSewa:   kerugian,
+		}
+
+		// ✅ TANGGAL PASANG (string)
+		tp := dto.FormatDateOnlyPtr(m.TanggalPasang)
+		if tp != "" {
+			machineResp.TanggalPasang = tp
+		}
+
+		// ✅ ESTIMASI SELESAI (*string)
+		es := dto.FormatDateOnlyPtr(p.EstimasiPerbaikan)
+		if es != "" {
+			machineResp.EstimasiSelesai = &es
+		}
+
+
+		result = append(result, machineResp)
 	}
 
 	return utils.Success(c, result)
@@ -123,10 +139,9 @@ func GetOverdueList(c *fiber.Ctx) error {
 
 func SearchOverdue(c *fiber.Ctx) error {
 	query := c.Query("q")
-	db := database.DB
 
 	var mesin []models.MesinEDC
-	err := db.
+	err := database.DB.
 		Preload("Perbaikan").
 		Preload("Sewa").
 		Where(`
@@ -140,7 +155,7 @@ func SearchOverdue(c *fiber.Ctx) error {
 	}
 
 	now := time.Now()
-	var result []dto.OverdueMesinResponse
+	var result []dto.MachineResponse
 
 	for _, m := range mesin {
 		if len(m.Perbaikan) == 0 {
@@ -149,35 +164,50 @@ func SearchOverdue(c *fiber.Ctx) error {
 
 		p := m.Perbaikan[0]
 
-		status := "perbaikan"
-		terlambat := 0
+		status := "PERBAIKAN"
 		kerugian := 0
 
 		if p.EstimasiPerbaikan != nil {
 			diff := int(now.Sub(*p.EstimasiPerbaikan).Hours() / 24)
 
 			if diff >= 3 {
-				status = "overdue"
-				terlambat = diff
+				status = "OVERDUE"
 				if m.Sewa != nil {
 					kerugian = m.Sewa.BiayaBulanan
 				}
 			} else if diff >= 0 {
-				status = "warning"
-				terlambat = diff
+				status = "WARNING"
 			}
 		}
 
-		result = append(result, dto.OverdueMesinResponse{
-			TerminalID:        m.TerminalID,
-			NamaNasabah:       utils.GetNamaNasabah(m.NamaNasabah, m.StatusData),
-			LokasiMesin:       m.LetakMesin,
-			TanggalPasang:     m.TanggalPasang,
-			EstimasiPerbaikan: p.EstimasiPerbaikan,
-			TerlambatHari:     terlambat,
-			StatusPerbaikan:   status,
-			Kerugian:          kerugian,
-		})
+		machineResp := dto.MachineResponse{
+			ID:          m.ID,
+			TerminalID:  m.TerminalID,
+			MID:         m.MID,
+			NamaNasabah: utils.GetNamaNasabah(m.NamaNasabah, m.StatusData),
+			Kota:        m.Kota,
+			Cabang:     m.Cabang,
+			TipeEDC:    m.TipeEDC,
+
+			StatusMesin: status,
+			StatusData:  dto.MapStatusData(m.StatusData),
+			StatusLetak: dto.MapStatusLetak(m.LetakMesin),
+			BiayaSewa:   kerugian,
+		}
+
+		// ✅ TANGGAL PASANG (string)
+		tp := dto.FormatDateOnlyPtr(m.TanggalPasang)
+		if tp != "" {
+			machineResp.TanggalPasang = tp
+		}
+
+		// ✅ ESTIMASI SELESAI (*string)
+		es := dto.FormatDateOnlyPtr(p.EstimasiPerbaikan)
+		if es != "" {
+			machineResp.EstimasiSelesai = &es
+		}
+
+		result = append(result, machineResp)
 	}
 
 	return utils.Success(c, result)
