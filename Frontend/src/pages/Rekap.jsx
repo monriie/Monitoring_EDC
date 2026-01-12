@@ -52,7 +52,7 @@ const Rekap = () => {
   }
 
   const handleAddClick = () => {
-    window.dispatchEvent(new Event('openAddModal'))
+    dispatchEvent(new Event('openAddModal'))
   }
 
   // Handle export button clicks
