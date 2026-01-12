@@ -140,4 +140,9 @@ export const authAPI = {
   },
 }
 
+// export const exportAPI = {
+//   exportPDF: (data) => apiClient.post('api/export/pdf', data, { responseType: 'blob' }),
+//   exportExcel: (data) => apiClient.post('api/export/excel', data, { responseType: 'blob' }),
+// }
+
 export default apiClient
