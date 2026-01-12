@@ -17,11 +17,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { formatCurrency } from '@/utils/formatter'
 import Loading from '@/components/common/Loading'
 import EmptyState from '@/components/common/EmptyState'
+import ExportYearFilterModal from '@/components/modal/ExportYearFilterModal'
 
 const Sewa = () => {
   const { summary, sewaList, loading, error, searchSewa } = useSewa()
-  const { exportToPDF, exportToExcel } = useExport()
+  const { exportToPDF, exportToExcel, getAvailableYears } = useExport()
   const [searchTerm, setSearchTerm] = useState('')
+
+    // Export modal states
+    const [showExportModal, setShowExportModal] = useState(false)
+    const [exportType, setExportType] = useState('pdf') // 'pdf' or 'excel'
 
   // Apply filters
   const {
@@ -53,9 +58,26 @@ const Sewa = () => {
     }
   }
 
-  const handleStatClick = (status) => {
-    setFilterSewa(status)
+  // Handle export button clicks
+  const handleExportPDFClick = () => {
+    setExportType('pdf')
+    setShowExportModal(true)
   }
+
+  const handleExportExcelClick = () => {
+    setExportType('excel')
+    setShowExportModal(true)
+  }
+
+  // Handle actual export with selected years
+  const handleExport = (selectedYears) => {
+    if (exportType === 'pdf') {
+      exportToPDF(filteredData, selectedYears, 'rekap-mesin')
+    } else {
+      exportToExcel(filteredData, selectedYears, 'rekap-mesin')
+    }
+  }
+  const yearsForExport = getAvailableYears(filteredData)
 
   // Loading state
   if (loading && sewaList.length === 0) {
@@ -72,16 +94,21 @@ const Sewa = () => {
           <p className="text-sm text-gray-500 mt-1">Kontrol biaya sewa dan status mesin EDC</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button onClick={() => exportToPDF(filteredData, 'sewa')} variant="destructive">
-            <Download size={16} className="mr-2" />
-            PDF
-          </Button>
-          <Button
-            onClick={() => exportToExcel(filteredData, 'sewa')}
-            className="bg-[#00AEEF] hover:bg-[#26baf1]"
+          <Button 
+            onClick={handleExportPDFClick} 
+            variant="destructive"
+            disabled={filteredData.length === 0}
           >
             <Download size={16} className="mr-2" />
-            Excel
+            <span className="inline">PDF</span>
+          </Button>
+          <Button
+            onClick={handleExportExcelClick}
+            className="bg-[#00AEEF] hover:bg-[#26baf1]"
+            disabled={filteredData.length === 0}
+          >
+            <Download size={16} className="mr-2" />
+            <span className="inline">Excel</span>
           </Button>
         </div>
       </header>
@@ -239,6 +266,15 @@ const Sewa = () => {
           </CardContent>
         </Card>
       )}
+
+      {/* Export Year Filter Modal */}
+      <ExportYearFilterModal
+        isOpen={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        onExport={handleExport}
+        availableYears={yearsForExport}
+        exportType={exportType}
+      />
     </section>
   )
 }

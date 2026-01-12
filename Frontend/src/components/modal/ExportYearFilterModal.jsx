@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Download, FileText, Filter, Check } from 'lucide-react'
+import { Download, FileText, Filter, Check, Sheet } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -57,7 +57,7 @@ const ExportYearFilterModal = ({
   }
 
   const getFileIcon = () => {
-    return exportType === 'pdf' ? '📄' : '📊'
+    return exportType === 'pdf' ? <FileText size={18}/> : <Sheet size={18}/>
   }
 
   const getFileTypeLabel = () => {
@@ -66,7 +66,7 @@ const ExportYearFilterModal = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="md:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Download size={20} className="text-[#00AEEF]" />
@@ -143,14 +143,11 @@ const ExportYearFilterModal = ({
                     <Checkbox
                       checked={selectedYears.includes(year)}
                       onCheckedChange={() => toggleYear(year)}
-                      className="data-[state=checked]:bg-[#00AEEF]"
+                      className="data-[state=checked]:bg-[#00AEEF] border-none"
                     />
                     <div className="flex-1">
                       <p className="font-semibold text-gray-900">{year}</p>
                     </div>
-                    {selectedYears.includes(year) && (
-                      <Check size={18} className="text-[#00AEEF]" />
-                    )}
                   </label>
                 ))}
               </div>
@@ -160,7 +157,7 @@ const ExportYearFilterModal = ({
           {/* Preview Info */}
           {selectedYears.length > 0 && (
             <div className="bg-gray-50 p-3 rounded-lg">
-              <p className="text-xs text-gray-600">
+              <p className="flex gap-3 text-xs text-gray-600">
                 {getFileIcon()} File akan berisi data dari tahun:{' '}
                 <span className="font-semibold">
                   {selectedYears.sort((a, b) => a - b).join(', ')}

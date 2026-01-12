@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Plus, Upload, FileSpreadsheet, X } from 'lucide-react'
+import { Plus, Upload, FileSpreadsheet, X, FileExclamationPoint } from 'lucide-react'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -134,7 +134,7 @@ const AddModal = () => {
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="md:max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Tambah Rekap Mesin EDC</DialogTitle>
           <DialogDescription>Pilih metode penambahan data mesin</DialogDescription>
@@ -169,6 +169,7 @@ const AddModal = () => {
           <div className="space-y-4 pt-4">
             <Alert className="flex gap-3">
               <AlertDescription className="space-y-1">
+                <FileExclamationPoint size={12}/>
                 <p className="font-semibold text-sm">Info Default</p>
 
                 <div className="flex flex-wrap gap-2 text-sm">

@@ -110,7 +110,7 @@ const Rekap = () => {
         <div className="flex flex-wrap gap-2">
           <Button onClick={handleAddClick} className="bg-green-600 hover:bg-green-700">
             <Plus size={16} className="mr-2" />
-            <span className="hidden sm:inline">Tambah Rekap</span>
+            <span className="inline">Tambah Rekap</span>
           </Button>
           <Button 
             onClick={handleExportPDFClick} 
@@ -118,7 +118,7 @@ const Rekap = () => {
             disabled={filteredData.length === 0}
           >
             <Download size={16} className="mr-2" />
-            <span className="hidden sm:inline">PDF</span>
+            <span className="inline">PDF</span>
           </Button>
           <Button
             onClick={handleExportExcelClick}
@@ -126,7 +126,7 @@ const Rekap = () => {
             disabled={filteredData.length === 0}
           >
             <Download size={16} className="mr-2" />
-            <span className="hidden sm:inline">Excel</span>
+            <span className="inline">Excel</span>
           </Button>
         </div>
       </header>

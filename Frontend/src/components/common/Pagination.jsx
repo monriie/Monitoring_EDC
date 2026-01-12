@@ -16,7 +16,7 @@ const Pagination = ({ currentPage, totalPages, onPageChange }) => (
         disabled={currentPage === 1}
       >
         <ChevronLeft size={16} />
-        Previous
+        <p className="hidden md:inline">Previous</p>
       </Button>
       <Button
         variant="outline"
@@ -24,7 +24,7 @@ const Pagination = ({ currentPage, totalPages, onPageChange }) => (
         onClick={() => onPageChange(currentPage + 1)}
         disabled={currentPage === totalPages}
       >
-        Next
+        <p className="hidden md:inline">Next</p>
         <ChevronRight size={16} />
       </Button>
     </div>
