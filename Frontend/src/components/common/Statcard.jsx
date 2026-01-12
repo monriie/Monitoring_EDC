@@ -7,11 +7,7 @@ const StatCard = ({ title, value, icon: Icon, iconColor, subtitle }) => (
       <CardTitle className="text-sm md:text-base font-medium text-gray-700">
         {title}
       </CardTitle>
-      {Icon && (
-        <div className={`shrink-0 ${iconColor}`}>
-          <Icon className="hidden sm:flex h-6 w-6 md:h-8 md:w-8" />
-        </div>
-      )}
+      
     </CardHeader>
     <CardContent className="space-y-1">
       <div className={`text-xl md:text-3xl font-bold ${iconColor}`}>
@@ -21,6 +17,11 @@ const StatCard = ({ title, value, icon: Icon, iconColor, subtitle }) => (
         <p className="text-sm text-gray-500">
           {subtitle}
         </p>
+      )}
+      {Icon && (
+        <div className={`shrink-0 ${iconColor}`}>
+          <Icon className="hidden sm:flex h-6 w-6 md:h-8 md:w-8" />
+        </div>
       )}
     </CardContent>
   </Card>

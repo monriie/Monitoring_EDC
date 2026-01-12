@@ -84,7 +84,16 @@ const Overdue = () => {
 
       {/* Statistics Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div onClick={() => handleStatClick('PERBAIKAN')} className="cursor-pointer">
+        <div
+        role="button"
+        tabIndex={0}
+        onClick={() => handleStatClick('PERBAIKAN')}
+        className=" cursor-pointer rounded-xl shadow-none
+          transition-all duration-200
+          hover:shadow-md hover:-translate-y-0.5
+          hover:ring-2 hover:ring-[#00AEEF]/40
+          focus:outline-none focus:ring-2 focus:ring-[#00AEEF]
+        ">
           <StatCard
             title="Perbaikan"
             value={summary.total_perbaikan - summary.warning - summary.overdue}
@@ -93,7 +102,16 @@ const Overdue = () => {
           />
         </div>
 
-        <div onClick={() => handleStatClick('WARNING')} className="cursor-pointer">
+        <div 
+        role="button"
+        tabIndex={0}
+        onClick={() => handleStatClick('WARNING')} 
+        className="cursor-pointer rounded-xl shadow-none
+          transition-all duration-200
+          hover:shadow-md hover:-translate-y-0.5
+          hover:ring-2 hover:ring-[#00AEEF]/40
+          focus:outline-none focus:ring-2 focus:ring-[#00AEEF]
+        ">
           <StatCard
             title="Warning (≤ 3 hari)"
             value={summary.warning}
@@ -102,7 +120,16 @@ const Overdue = () => {
           />
         </div>
 
-        <div onClick={() => handleStatClick('OVERDUE')} className="cursor-pointer">
+        <div 
+        role="button"
+        tabIndex={0}
+        onClick={() => handleStatClick('OVERDUE')} 
+        className="cursor-pointer rounded-xl shadow-none
+          transition-all duration-200
+          hover:shadow-md hover:-translate-y-0.5
+          hover:ring-2 hover:ring-[#00AEEF]/40
+          focus:outline-none focus:ring-2 focus:ring-[#00AEEF]
+        ">
           <StatCard
             title="Overdue"
             value={summary.overdue}

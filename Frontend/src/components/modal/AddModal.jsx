@@ -175,12 +175,12 @@ const AddModal = () => {
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="md:max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-2xl font-bold text-black">
+          <DialogTitle className="text-start md:text-2xl font-bold text-black">
             Tambah Rekap Mesin EDC
           </DialogTitle>
-          <DialogDescription>
+          <DialogDescription className="text-start">
             Pilih metode penambahan data mesin
           </DialogDescription>
         </DialogHeader>
