@@ -140,7 +140,7 @@ const DetailMesin = () => {
       {/* Main Content */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Status Overview Card */}
-        <Card className="lg:col-span-1 gap-3">
+        <Card className="lg:col-span-1 gap-3 py-4">
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
               <Wrench size={18} className="text-[#00AEEF]" />
@@ -168,7 +168,7 @@ const DetailMesin = () => {
         </Card>
 
         {/* Location & Customer Info */}
-        <Card className="lg:col-span-1 gap-3">
+        <Card className="lg:col-span-1 gap-3 py-4">
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
               <MapPin size={18} className="text-[#00AEEF]" />
@@ -192,7 +192,7 @@ const DetailMesin = () => {
         </Card>
 
         {/* Rental & Financial Info */}
-        <Card className="lg:col-span-1 gap-3">
+        <Card className="lg:col-span-1 gap-3 py-4">
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
               <DollarSign size={18} className="text-[#00AEEF]" />

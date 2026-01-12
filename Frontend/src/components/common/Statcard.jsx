@@ -1,30 +1,31 @@
 import React from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 
-const StatCard = ({ title, value, icon: Icon, iconColor, subtitle }) => (
-  <Card className="hover:shadow-base transition-shadow duration-200">
-    <CardHeader className="flex flex-row items-center justify-between space-y-0">
-      <CardTitle className="text-sm md:text-base font-medium text-gray-700">
-        {title}
-      </CardTitle>
-      
-    </CardHeader>
-    <CardContent className="space-y-1">
-      <div className={`text-xl md:text-3xl font-bold ${iconColor}`}>
-        {value}
-      </div>
-      {subtitle && (
-        <p className="text-sm text-gray-500">
-          {subtitle}
-        </p>
-      )}
-      {Icon && (
-        <div className={`shrink-0 ${iconColor}`}>
-          <Icon className="hidden sm:flex h-6 w-6 md:h-8 md:w-8" />
+const StatCard = ({ title, value, icon: Icon, iconColor }) => {
+  return (
+    <Card className="hover:shadow-base transition-shadow duration-200">
+      <CardContent className="flex items-center justify-between py-5">
+        
+        {/* Left: Title & Value */}
+        <div className="flex flex-col space-y-1">
+          <span className="text-sm md:text-base text-gray-600 font-medium">
+            {title}
+          </span>
+          <span className={`text-2xl md:text-3xl font-bold ${iconColor}`}>
+            {value}
+          </span>
         </div>
-      )}
-    </CardContent>
-  </Card>
-)
+
+        {/* Right: Icon */}
+        {Icon && (
+          <div className={`hidden md:flex items-center ${iconColor}`}>
+            <Icon className="h-7 w-7 lg:h-8 lg:w-8" />
+          </div>
+        )}
+
+      </CardContent>
+    </Card>
+  )
+}
 
 export default StatCard;

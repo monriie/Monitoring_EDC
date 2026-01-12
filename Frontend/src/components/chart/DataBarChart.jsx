@@ -48,14 +48,14 @@ const DataBarChart = () => {
           >
             <XAxis 
               dataKey="name"
-              tick={{ fontSize: 12 }}
+              tick={{ fontSize: 16 }}
               interval={0}
               angle={-15}
               textAnchor="end"
               height={60}
             />
             <YAxis 
-              tick={{ fontSize: 12 }}
+              tick={{ fontSize: 16 }}
               width={40}
             />
             <Tooltip content={<CustomTooltip />} />
@@ -66,7 +66,7 @@ const DataBarChart = () => {
               maxBarSize={100}
               label={{ 
                 position: 'top', 
-                fontSize: 14,
+                fontSize: 18,
                 fontWeight: 'bold',
                 fill: '#374151'
               }}

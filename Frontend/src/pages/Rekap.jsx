@@ -19,7 +19,7 @@ import Loading from '@/components/common/Loading'
 
 const Rekap = () => {
   const { machines, loading, error, fetchMachines } = useRekap()
-  const { exportToPDF, exportToExcel, getAvailableYears } = useExport()
+  const { exportToPDF, exportToExcel, getAvailableYears, filename } = useExport()
   const [searchTerm, setSearchTerm] = useState('')
   
   // Export modal states
@@ -69,9 +69,9 @@ const Rekap = () => {
   // Handle actual export with selected years
   const handleExport = (selectedYears) => {
     if (exportType === 'pdf') {
-      exportToPDF(filteredData, selectedYears, 'rekap-mesin')
+      exportToPDF(filteredData, 'rekap-mesin')
     } else {
-      exportToExcel(filteredData, selectedYears, 'rekap-mesin')
+      exportToExcel(filteredData, 'rekap-mesin')
     }
   }
 
@@ -132,7 +132,7 @@ const Rekap = () => {
       </header>
 
       {/* Filter Section */}
-      <Card>
+      <Card className="py-4">
         <CardContent>
           <div>
             <div>
@@ -141,7 +141,7 @@ const Rekap = () => {
                 <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                 <Input
                   id="search"
-                  placeholder="Terminal ID / Nasabah"
+                  placeholder="Terminal ID / Merchant"
                   className="pl-9"
                   value={searchTerm}
                   onChange={(e) => handleSearch(e.target.value)}
@@ -213,7 +213,7 @@ const Rekap = () => {
           </CardContent>
         </Card>
       ) : (
-        <Card>
+        <Card className="py-6">
           <CardContent>
             <RekapTable machines={paginatedItems} />
             {totalPages > 1 && (

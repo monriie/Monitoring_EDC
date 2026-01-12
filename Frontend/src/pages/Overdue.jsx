@@ -147,7 +147,7 @@ const Overdue = () => {
       </div>
 
       {/* Filter Section */}
-      <Card>
+      <Card className="py-4">
         <CardContent>
           <div>
             <div>
@@ -217,7 +217,7 @@ const Overdue = () => {
           </CardContent>
         </Card>
       ) : (
-        <Card>
+        <Card className="py-6">
           <CardContent>
             <OverdueTable machines={paginatedItems} />
             {totalPages > 1 && (

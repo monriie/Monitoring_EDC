@@ -84,7 +84,7 @@ const Dashboard = () => {
       {/* Bottom Section */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Mesin Baru dari Vendor */}
-        <Card className="lg:col-span-2">
+        <Card className="lg:col-span-2 py-6">
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle>Mesin Baru dari Vendor</CardTitle>
@@ -134,7 +134,7 @@ const Dashboard = () => {
         </Card>
 
         {/* Monitoring Overdue */}
-        <Card>
+        <Card className="py-6">
           <CardHeader>
             <div className="flex items-center gap-2">
               <AlertTriangle className="text-[#ed1c24]" size={20} />

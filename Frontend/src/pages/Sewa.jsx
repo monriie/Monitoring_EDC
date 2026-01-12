@@ -18,10 +18,11 @@ import { formatCurrency } from '@/utils/formatter'
 import Loading from '@/components/common/Loading'
 import EmptyState from '@/components/common/EmptyState'
 import ExportYearFilterModal from '@/components/modal/ExportYearFilterModal'
+import { exportSewaToPDF } from '@/utils/exportUtils'
 
 const Sewa = () => {
   const { summary, sewaList, loading, error, searchSewa } = useSewa()
-  const { exportToPDF, exportToExcel, getAvailableYears } = useExport()
+  const { exportToExcel, exportSewatoPDF,filename, getAvailableYears } = useExport()
   const [searchTerm, setSearchTerm] = useState('')
 
     // Export modal states
@@ -72,9 +73,9 @@ const Sewa = () => {
   // Handle actual export with selected years
   const handleExport = (selectedYears) => {
     if (exportType === 'pdf') {
-      exportToPDF(filteredData, selectedYears, 'rekap-mesin')
+      exportSewaToPDF(filteredData, 'sewa-mesin')
     } else {
-      exportToExcel(filteredData, selectedYears, 'rekap-mesin')
+      exportToExcel(filteredData, 'sewa-mesin')
     }
   }
   const yearsForExport = getAvailableYears(filteredData)
@@ -159,7 +160,7 @@ const Sewa = () => {
       )}
 
       {/* Filters */}
-      <Card>
+      <Card className="py-4">
         <CardContent>
           <div>
             <div>
@@ -257,7 +258,7 @@ const Sewa = () => {
           </CardContent>
         </Card>
       ) : (
-        <Card>
+        <Card className="py-6">
           <CardContent>
             <SewaTable machines={paginatedItems} />
             {totalPages > 1 && (
