@@ -28,22 +28,21 @@ const DetailMesin = () => {
 
   const handleEditClick = () => {
     if (machine) {
-      // Flatten data structure untuk edit modal
       const flattenedMachine = {
-        terminal_id: machine.informasi_mesin?.terminal_id || '',
-        mid: machine.informasi_mesin?.mid || '',
-        nama_nasabah: machine.informasi_lokasi?.nama_nasabah || '',
-        kota: machine.informasi_lokasi?.kota || '',
-        cabang: machine.informasi_lokasi?.cabang || '',
-        tipe_edc: machine.informasi_mesin?.tipe_edc || '',
-        vendor: machine.informasi_mesin?.vendor || '',
-        status_mesin: machine.informasi_mesin?.status_mesin || 'AKTIF',
-        status_data: machine.informasi_mesin?.status_data || 'VENDOR_ONLY',
-        status_sewa: machine.informasi_sewa?.status_sewa || 'BERAKHIR',
-        status_letak: machine.informasi_lokasi?.status_letak || 'NASABAH',
-        tanggal_pasang: machine.informasi_lokasi?.tanggal_pasang || '',
-        biaya_sewa: machine.informasi_sewa?.biaya_bulanan || 0,
-        estimasi_selesai: machine.informasi_sewa?.estimasi_selesai || null,
+        terminal_id: machine.informasi_mesin?.terminal_id || machine.terminal_id || '',
+        mid: machine.informasi_mesin?.mid || machine.mid || '',
+        nama_nasabah: machine.informasi_lokasi?.nama_nasabah || machine.nama_nasabah || '',
+        kota: machine.informasi_lokasi?.kota || machine.kota || '',
+        cabang: machine.informasi_lokasi?.cabang || machine.cabang || '',
+        tipe_edc: machine.informasi_mesin?.tipe_edc || machine.tipe_edc || '',
+        vendor: machine.informasi_mesin?.vendor || machine.vendor || '',
+        status_mesin: machine.informasi_mesin?.status_mesin || machine.status_mesin || 'AKTIF',
+        status_data: machine.informasi_mesin?.status_data || machine.status_data || 'vendor_only',
+        status_sewa: machine.informasi_sewa?.status_sewa || machine.status_sewa || 'BERAKHIR',
+        status_letak: machine.informasi_lokasi?.status_letak || machine.status_letak || 'NASABAH',
+        tanggal_pasang: machine.informasi_lokasi?.tanggal_pasang || machine.tanggal_pasang || '',
+        biaya_sewa: machine.informasi_sewa?.biaya_bulanan || machine.biaya_sewa || 0,
+        estimasi_selesai: machine.informasi_sewa?.estimasi_selesai || machine.estimasi_selesai || null,
       }
       
       dispatchEvent(new CustomEvent('openEditModal', { detail: flattenedMachine }))
@@ -55,19 +54,21 @@ const DetailMesin = () => {
       const updatedData = e.detail
       
       const backendData = {
-        nama_nasabah: updatedData.nama_nasabah,
-        kota: updatedData.kota,
-        cabang: updatedData.cabang,
-        tipe_edc: updatedData.tipe_edc,
+        nama_nasabah: updatedData.nama_nasabah || '',
+        kota: updatedData.kota || '',
+        cabang: updatedData.cabang || '',
+        tipe_edc: updatedData.tipe_edc || '',
         vendor: updatedData.vendor || '',
-        status_mesin: updatedData.status_mesin,
-        status_data: updatedData.status_data,
-        status_sewa: updatedData.status_sewa,
-        status_letak: updatedData.status_letak,
-        tanggal_pasang: updatedData.tanggal_pasang,
-        biaya_bulanan: updatedData.biaya_sewa,
-        estimasi_selesai: updatedData.estimasi_selesai,
+        status_mesin: updatedData.status_mesin || 'AKTIF',
+        status_data: updatedData.status_data || 'vendor_only',
+        status_sewa: updatedData.status_sewa || 'BERAKHIR',
+        status_letak: updatedData.status_letak || 'NASABAH',
+        tanggal_pasang: updatedData.tanggal_pasang || '',
+        biaya_bulanan: parseInt(updatedData.biaya_sewa) || 0,
+        estimasi_selesai: updatedData.estimasi_selesai || null,
       }
+
+      // console.log('Sending to backend:', backendData)
 
       const result = await updateMachine(backendData)
       if (result.success) {
@@ -85,10 +86,11 @@ const DetailMesin = () => {
 
   if (error || !machine) {
     return (
-      <div className="flex items-center justify-center min-h-100">
+      <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <Search size={48} className="mx-auto mb-4 text-gray-400" />
           <p className="text-lg text-gray-600">Data mesin tidak ditemukan</p>
+          <p className="text-sm text-gray-500 mt-2">{error}</p>
         </div>
       </div>
     )
@@ -99,7 +101,7 @@ const DetailMesin = () => {
   const mid = machine.informasi_mesin?.mid || machine.mid || 'N/A'
   const tipeEdc = machine.informasi_mesin?.tipe_edc || machine.tipe_edc || 'N/A'
   const statusMesin = machine.informasi_mesin?.status_mesin || machine.status_mesin || 'AKTIF'
-  const statusData = machine.informasi_mesin?.status_data || machine.status_data || 'VENDOR_ONLY'
+  const statusData = machine.informasi_mesin?.status_data || machine.status_data || 'vendor_only'
   const sumberData = machine.sumber_data || statusData
   
   const namaNasabah = machine.informasi_lokasi?.nama_nasabah || machine.nama_nasabah || 'Belum terdata'
@@ -151,7 +153,7 @@ const DetailMesin = () => {
         </div>
       </div>
 
-      {/* Main Content */}
+      {/* Main Content - Rest tetap sama */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Status Overview Card */}
         <Card className="lg:col-span-1 gap-3 py-4">
@@ -190,18 +192,10 @@ const DetailMesin = () => {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            <InfoItem
-              label="Nama Nasabah"
-              value={namaNasabah}
-              icon={Building2}
-            />
+            <InfoItem label="Nama Nasabah" value={namaNasabah} icon={Building2} />
             <InfoItem label="Cabang Pengelola" value={cabang} icon={Building2} />
             <InfoItem label="Kota" value={kota} icon={MapPin} />
-            <InfoItem
-              label="Tanggal Pemasangan"
-              value={tanggalPasang}
-              icon={Calendar}
-            />
+            <InfoItem label="Tanggal Pemasangan" value={tanggalPasang} icon={Calendar} />
           </CardContent>
         </Card>
 
@@ -235,8 +229,7 @@ const DetailMesin = () => {
                   <Alert className="bg-linear-to-br from-red-50 to-red-100 rounded-lg p-4 border border-red-200">
                     <AlertDescription>
                       <p className="text-base text-gray-600 mb-1">
-                        Overdue :{' '}
-                        <span className="font-bold text-base text-[#ed1c24] mb-1">{daysOverdue} hari</span>
+                        Overdue: <span className="font-bold text-base text-[#ed1c24] mb-1">{daysOverdue} hari</span>
                       </p>
                       <p className="text-base text-gray-600 mb-1">
                         Estimasi Kerugian{' '}
