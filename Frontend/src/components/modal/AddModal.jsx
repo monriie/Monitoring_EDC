@@ -37,7 +37,7 @@ const AddModal = () => {
     status_letak: 'NASABAH',
     tanggal_pasang: new Date().toISOString().split('T')[0],
     estimasi_selesai: null,
-    biaya_sewa: 1500000,
+    biaya_sewa: 150000,
     sumber_data: ['VENDOR']
   })
 

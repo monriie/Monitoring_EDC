@@ -153,7 +153,7 @@ func CreateRekapMesin(c *fiber.Ctx) error {
 	// Set default biaya if not provided
 	biaya := req.BiayaSewa
 	if biaya == 0 {
-		biaya = 1500000 // Match frontend default
+		biaya = 150000 // Match frontend default
 	}
 
 	// Convert status sewa

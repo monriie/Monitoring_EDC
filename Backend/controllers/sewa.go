@@ -61,7 +61,7 @@ func GetSewaList(c *fiber.Ctx) error {
 
 		biaya := s.BiayaBulanan
 		if biaya == 0 {
-			biaya = 1500000
+			biaya = 150000
 		}
 
 		result = append(result, fiber.Map{
@@ -108,7 +108,7 @@ func SearchSewa(c *fiber.Ctx) error {
 
 		biaya := s.BiayaBulanan
 		if biaya == 0 {
-			biaya = 1500000
+			biaya = 150000
 		}
 
 		result = append(result, fiber.Map{
@@ -158,7 +158,7 @@ func isMesinBermasalah(status string) bool {
 
 func normalizeBiayaBulanan(biaya int) int {
 	if biaya <= 0 {
-		return 1500000
+		return 150000
 	}
 	return biaya
 }
