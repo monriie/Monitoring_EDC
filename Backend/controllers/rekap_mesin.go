@@ -88,9 +88,11 @@ func CreateRekapMesin(c *fiber.Ctx) error {
 	type Request struct {
 		TerminalID       string    `json:"terminal_id"`
 		MID              string    `json:"mid"`
+		NamaNasabah      string    `json:"nama_nasabah"`
 		Kota             string    `json:"kota"`
 		Cabang           string    `json:"cabang"`
 		TipeEDC          string    `json:"tipe_edc"`
+		StatusData       string    `json:"status_data"`
 		TanggalPasang    time.Time `json:"tanggal_pasang"`
 		BiayaSewaBulanan int       `json:"biaya_sewa_bulanan"`
 	}
@@ -100,8 +102,8 @@ func CreateRekapMesin(c *fiber.Ctx) error {
 		return utils.Error(c, "Request tidak valid")
 	}
 
-	if req.TerminalID == "" || req.MID == "" {
-		return utils.Error(c, "Terminal ID dan MID wajib diisi")
+	if req.TerminalID == "" || req.MID == "" || req.NamaNasabah == "" {
+		return utils.Error(c, "Terminal ID, MID, dan Nama Nasabah wajib diisi")
 	}
 
 	// Cek duplikasi
@@ -114,16 +116,21 @@ func CreateRekapMesin(c *fiber.Ctx) error {
 
 	// ✅ POINTER FIX
 	tanggalPasang := req.TanggalPasang
+	statusData := req.StatusData
+	if statusData == "" {
+		statusData = "vendor_only"
+	}
 
 	mesin := models.MesinEDC{
 		TerminalID:    req.TerminalID,
 		MID:           req.MID,
+		NamaNasabah:   req.NamaNasabah,
 		Kota:          req.Kota,
 		Cabang:        req.Cabang,
 		TipeEDC:       req.TipeEDC,
 		TanggalPasang: &tanggalPasang,
 
-		StatusData:  "vendor_only",
+		StatusData:  statusData,
 		StatusMesin: "aktif",
 		LetakMesin:  "nasabah",
 	}
