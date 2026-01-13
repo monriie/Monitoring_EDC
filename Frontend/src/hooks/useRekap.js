@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { rekapAPI, sewaAPI } from '@/service/api'
+import { rekapAPI, sewaAPI, excelAPI } from '@/service/api'
 import toast from 'react-hot-toast'
 
 export const useRekap = () => {
@@ -14,7 +14,6 @@ export const useRekap = () => {
 
     try {
       const response = await rekapAPI.getAll(searchQuery)
-      // Handle different response formats
       const data = Array.isArray(response) ? response : []
       setMachines(data)
       return { success: true, data }
@@ -22,7 +21,6 @@ export const useRekap = () => {
       const errorMessage = err.message || 'Gagal memuat data rekap'
       setError(errorMessage)
       console.error('Rekap fetch error:', errorMessage)
-      // Set empty array on error
       setMachines([])
       return { success: false, error: errorMessage }
     } finally {
@@ -38,7 +36,11 @@ export const useRekap = () => {
     try {
       const response = await rekapAPI.create(data)
       toast.success('Rekap mesin berhasil ditambahkan')
-      await fetchMachines() // Refresh list
+      await fetchMachines()
+      
+      // ✅ Trigger refresh event
+      dispatchEvent(new Event('rekapUpdated'))
+      
       return { success: true, data: response }
     } catch (err) {
       const errorMessage = err.message || 'Gagal menambahkan rekap'
@@ -50,7 +52,66 @@ export const useRekap = () => {
     }
   }, [fetchMachines])
 
-  // Auto fetch on mount
+  // Upload Excel Vendor
+  const uploadVendorExcel = useCallback(async (file) => {
+    setLoading(true)
+    setError(null)
+
+    try {
+      const response = await excelAPI.uploadVendor(file)
+      
+      toast.success(
+        `Upload vendor berhasil! Ditambahkan: ${response.inserted || 0}, Diupdate: ${response.updated || 0}, Dilewati: ${response.skipped || 0}`,
+        { duration: 5000 }
+      )
+      
+      // ✅ Refresh data
+      await fetchMachines()
+      
+      // ✅ Trigger refresh event
+      dispatchEvent(new Event('rekapUpdated'))
+      
+      return { success: true, data: response }
+    } catch (err) {
+      const errorMessage = err.message || 'Gagal upload file vendor'
+      setError(errorMessage)
+      toast.error(errorMessage)
+      return { success: false, error: errorMessage }
+    } finally {
+      setLoading(false)
+    }
+  }, [fetchMachines])
+
+  // Upload Excel Bank
+  const uploadBankExcel = useCallback(async (file) => {
+    setLoading(true)
+    setError(null)
+
+    try {
+      const response = await excelAPI.uploadBank(file)
+      
+      toast.success(
+        `Upload bank berhasil! Ditambahkan: ${response.inserted || 0}, Diupdate: ${response.updated || 0}, Dilewati: ${response.skipped || 0}`,
+        { duration: 5000 }
+      )
+      
+      // ✅ Refresh data
+      await fetchMachines()
+      
+      // ✅ Trigger refresh event
+      dispatchEvent(new Event('rekapUpdated'))
+      
+      return { success: true, data: response }
+    } catch (err) {
+      const errorMessage = err.message || 'Gagal upload file bank'
+      setError(errorMessage)
+      toast.error(errorMessage)
+      return { success: false, error: errorMessage }
+    } finally {
+      setLoading(false)
+    }
+  }, [fetchMachines])
+
   useEffect(() => {
     fetchMachines()
   }, [fetchMachines])
@@ -61,9 +122,13 @@ export const useRekap = () => {
     error,
     fetchMachines,
     createMachine,
+    uploadVendorExcel,
+    uploadBankExcel,
   }
 }
 
+
+// sewa
 export const useSewa = () => {
   const [summary, setSummary] = useState({
     sewa_aktif: 0,

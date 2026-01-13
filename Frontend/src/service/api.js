@@ -117,6 +117,31 @@ export const mesinAPI = {
   },
 }
 
+// Excel Upload API
+export const excelAPI = {
+  uploadVendor: async (file) => {
+    const formData = new FormData()
+    formData.append('file', file)
+    
+    return apiClient.post('api/excel/upload-vendor', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    })
+  },
+  
+  uploadBank: async (file) => {
+    const formData = new FormData()
+    formData.append('file', file)
+    
+    return apiClient.post('api/excel/upload-bank', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    })
+  },
+}
+
 export const authAPI = {
   login: (credentials) => apiClient.post('auth/login', credentials),
   
@@ -140,9 +165,4 @@ export const authAPI = {
   },
 }
 
-// export const exportAPI = {
-//   exportPDF: (data) => apiClient.post('api/export/pdf', data, { responseType: 'blob' }),
-//   exportExcel: (data) => apiClient.post('api/export/excel', data, { responseType: 'blob' }),
-// }
-
-export default apiClient
+export default apiClient;
