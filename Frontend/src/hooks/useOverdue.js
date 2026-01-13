@@ -21,6 +21,9 @@ export const useOverdue = () => {
     try {
       const response = await overdueAPI.getSummary()
       // Ensure we have valid data structure
+
+      console.log('SUMMARY RESPONSE:', response)
+
       setSummary({
         total_perbaikan: response?.total_perbaikan || 0,
         warning: response?.warning || 0,

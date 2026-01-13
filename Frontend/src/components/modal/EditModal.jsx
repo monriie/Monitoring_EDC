@@ -21,6 +21,8 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { AlertTriangle, Info } from 'lucide-react'
 import syncMachineStatuses from '@/utils/statusSync'
 
+let __syncTimeout = null
+
 const EditModal = () => {
   const [isOpen, setIsOpen] = useState(false)
   const [editingMachine, setEditingMachine] = useState(null)
@@ -39,6 +41,7 @@ const EditModal = () => {
   const handleClose = () => {
     setIsOpen(false)
     setSyncWarning(null)
+    setEditingMachine(null)
   }
 
   const handleFieldChange = (field, value) => {
@@ -50,7 +53,7 @@ const EditModal = () => {
 
     if (warning) {
       setSyncWarning(warning)
-      clearTimeout(__syncTimeout)
+      if (__syncTimeout) clearTimeout(__syncTimeout)
       __syncTimeout = setTimeout(() => {
         setSyncWarning(null)
       }, 3000)
@@ -77,6 +80,8 @@ const EditModal = () => {
   }
 
   const handleSave = () => {
+    // console.log('Saving machine data:', editingMachine)
+    
     // Dispatch event with updated machine data
     dispatchEvent(new CustomEvent('machineUpdated', { 
       detail: editingMachine 
@@ -89,11 +94,11 @@ const EditModal = () => {
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="lg:min-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="lg:max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Edit Data Mesin EDC</DialogTitle>
           <DialogDescription>
-            Perbarui informasi mesin EDC
+            Perbarui informasi mesin EDC - Terminal ID: {editingMachine.terminal_id}
           </DialogDescription>
         </DialogHeader>
 
@@ -109,11 +114,11 @@ const EditModal = () => {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label>Terminal ID</Label>
-              <Input value={editingMachine.terminal_id} disabled className="mt-2" />
+              <Input value={editingMachine.terminal_id || ''} disabled className="mt-2 bg-gray-100" />
             </div>
             <div>
               <Label>MID</Label>
-              <Input value={editingMachine.mid} disabled className="mt-2" />
+              <Input value={editingMachine.mid || ''} disabled className="mt-2 bg-gray-100" />
             </div>
           </div>
 
@@ -129,6 +134,7 @@ const EditModal = () => {
                 })
               }
               className="mt-2"
+              placeholder="Nama nasabah"
             />
           </div>
 
@@ -142,6 +148,7 @@ const EditModal = () => {
                   setEditingMachine({ ...editingMachine, kota: e.target.value })
                 }
                 className="mt-2"
+                placeholder="Kota"
               />
             </div>
             <div>
@@ -152,6 +159,7 @@ const EditModal = () => {
                   setEditingMachine({ ...editingMachine, cabang: e.target.value })
                 }
                 className="mt-2"
+                placeholder="Cabang pengelola"
               />
             </div>
           </div>
@@ -168,6 +176,7 @@ const EditModal = () => {
                 })
               }
               className="mt-2"
+              placeholder="Tipe EDC"
             />
           </div>
 
@@ -176,7 +185,7 @@ const EditModal = () => {
             <div>
               <Label>Status Mesin</Label>
               <Select
-                value={editingMachine.status_mesin}
+                value={editingMachine.status_mesin || 'AKTIF'}
                 onValueChange={(val) =>
                   handleFieldChange('status_mesin', val)
                 }
@@ -196,7 +205,7 @@ const EditModal = () => {
             <div>
               <Label>Status Data</Label>
               <Select
-                value={editingMachine.status_data}
+                value={editingMachine.status_data || 'vendor_only'}
                 onValueChange={(val) =>
                   setEditingMachine({ ...editingMachine, status_data: val })
                 }
@@ -205,8 +214,8 @@ const EditModal = () => {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="TERDATA_BANK">Terdata Bank</SelectItem>
-                  <SelectItem value="VENDOR_ONLY">Vendor Only</SelectItem>
+                  <SelectItem value="terdata_di_bank">Terdata Bank</SelectItem>
+                  <SelectItem value="vendor_only">Vendor Only</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -214,7 +223,7 @@ const EditModal = () => {
             <div>
               <Label>Status Sewa</Label>
               <Select
-                value={editingMachine.status_sewa}
+                value={editingMachine.status_sewa || 'BERAKHIR'}
                 onValueChange={(val) =>
                   handleFieldChange('status_sewa', val)
                 }
@@ -232,7 +241,7 @@ const EditModal = () => {
             <div>
               <Label>Letak Mesin</Label>
               <Select
-                value={editingMachine.status_letak}
+                value={editingMachine.status_letak || 'NASABAH'}
                 onValueChange={(val) =>
                   handleFieldChange('status_letak', val)
                 }
@@ -286,6 +295,7 @@ const EditModal = () => {
                   })
                 }
                 className="mt-2"
+                placeholder="0"
               />
             </div>
           </div>

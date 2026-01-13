@@ -7,9 +7,12 @@ import { Label } from '@/components/ui/label'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Card, CardContent } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { useRekap } from '@/hooks/useRekap'
+import toast from 'react-hot-toast'
 
 const AddModal = () => {
   const [isOpen, setIsOpen] = useState(false)
+  const { uploadVendorExcel, uploadBankExcel, loading } = useRekap()
   const [activeTab, setActiveTab] = useState('satuan')
   const [uploadSource, setUploadSource] = useState('vendor') // 'vendor' or 'bank'
   
@@ -18,10 +21,6 @@ const AddModal = () => {
     bank: null,
   })
   
-  const [previewData, setPreviewData] = useState({
-    vendor: [],
-    bank: [],
-  })
 
   const [newMachine, setNewMachine] = useState({
     terminal_id: '',
@@ -78,10 +77,6 @@ const AddModal = () => {
       vendor: null,
       bank: null,
     })
-    setPreviewData({
-      vendor: [],
-      bank: [],
-    })
   }
 
   const handleAddSatuan = () => {
@@ -111,47 +106,39 @@ const AddModal = () => {
       ...prev,
       [source]: file
     }))
-
-    // Preview dummy data sesuai source
-    const reader = new FileReader()
-    reader.onload = () => {
-      if (source === 'vendor') {
-        setPreviewData(prev => ({
-          ...prev,
-          vendor: [
-            { TID: '32090010', MID: '70910010', NO_SPK: 'SPK001', DEFAULT_MCC: '5411', DESCRIPTION: 'Toko A', KOTA: 'Palembang', CABANG_PENGELOLA: 'Ilir Barat', TYPE_EDC: 'Wireless' },
-            { TID: '32090011', MID: '70910011', NO_SPK: 'SPK002', DEFAULT_MCC: '5812', DESCRIPTION: 'Restoran B', KOTA: 'Palembang', CABANG_PENGELOLA: 'Plaju', TYPE_EDC: 'Mobile' },
-          ]
-        }))
-      } else {
-        setPreviewData(prev => ({
-          ...prev,
-          bank: [
-            { TERMINAL_ID_NR: '32090010', STATUS: 'ACTIVE', OWNER_ENTITY_ID: 'E001', ENTITY_NAME: 'PT ABC', ACTUAL_START_TIME: '2024-01-15', ENTITY_STATUS: 'VERIFIED' },
-            { TERMINAL_ID_NR: '32090012', STATUS: 'ACTIVE', OWNER_ENTITY_ID: 'E002', ENTITY_NAME: 'PT XYZ', ACTUAL_START_TIME: '2024-02-20', ENTITY_STATUS: 'VERIFIED' },
-          ]
-        }))
-      }
-    }
     reader.readAsArrayBuffer(file)
   }
 
-  const handleAddMulti = () => {
+  const handleAddMulti = async () => {
     const currentFile = excelFiles[uploadSource]
-    const currentPreview = previewData[uploadSource]
 
     if (!currentFile) {
       alert('Pilih file Excel terlebih dahulu!')
       return
     }
 
-    dispatchEvent(new CustomEvent('machinesAddedBulk', {
-      detail: { 
-        file: currentFile, 
-        data: currentPreview,
-        source: uploadSource // 'vendor' atau 'bank'
+    // Validasi ukuran file (5MB)
+    const maxSize = 5 * 1024 * 1024
+    if (currentFile.size > maxSize) {
+      toast.error('Ukuran file maksimal 5MB')
+      return
+    }
+
+    try {
+      let result
+      
+      if (uploadSource === 'vendor') {
+        result = await uploadVendorExcel(currentFile)
+      } else {
+        result = await uploadBankExcel(currentFile)
       }
-    }))
+
+      if (result.success) {
+        handleClose()
+      }
+    } catch (error) {
+      console.error('Upload error:', error)
+    }
     
     handleClose()
   }
@@ -161,17 +148,12 @@ const AddModal = () => {
       ...prev,
       [source]: null
     }))
-    setPreviewData(prev => ({
-      ...prev,
-      [source]: []
-    }))
     
     const fileInput = document.getElementById(`excel-file-${source}`)
     if (fileInput) fileInput.value = ''
   }
 
   const currentFile = excelFiles[uploadSource]
-  const currentPreview = previewData[uploadSource]
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
@@ -310,7 +292,7 @@ const AddModal = () => {
                   className={`cursor-pointer transition-all ${uploadSource === 'vendor' ? 'ring-2 ring-[#00AEEF] bg-blue-50' : 'hover:bg-gray-50'}`}
                   onClick={() => setUploadSource('vendor')}
                 >
-                  <CardContent className="flex items-center gap-3">
+                  <CardContent className="flex items-center gap-3 py-4">
                     <Building2 className={`h-8 w-8 ${uploadSource === 'vendor' ? 'text-[#00AEEF]' : 'text-gray-400'}`} />
                     <div>
                       <div className="font-semibold">Data Vendor</div>
@@ -323,7 +305,7 @@ const AddModal = () => {
                   className={`cursor-pointer transition-all ${uploadSource === 'bank' ? 'ring-2 ring-[#00AEEF] bg-blue-50' : 'hover:bg-gray-50'}`}
                   onClick={() => setUploadSource('bank')}
                 >
-                  <CardContent className="flex items-center gap-3">
+                  <CardContent className="flex items-center gap-3 py-4">
                     <Database className={`h-8 w-8 ${uploadSource === 'bank' ? 'text-[#00AEEF]' : 'text-gray-400'}`} />
                     <div>
                       <div className="font-semibold">Data Bank</div>
@@ -406,61 +388,6 @@ const AddModal = () => {
                 </div>
               )}
             </div>
-
-            {/* Preview Data */}
-            {currentPreview.length > 0 && (
-              <Card>
-                <CardContent className="p-4">
-                  <div className="font-semibold mb-4">
-                    Preview Data {uploadSource === 'vendor' ? 'Vendor' : 'Bank'} ({currentPreview.length} record)
-                  </div>
-                  <div className="relative overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead className="bg-gray-100">
-                        <tr>
-                          {uploadSource === 'vendor' ? (
-                            <>
-                              <th className="px-4 py-2 text-left">TID</th>
-                              <th className="px-4 py-2 text-left">MID</th>
-                              <th className="px-4 py-2 text-left">Kota</th>
-                              <th className="px-4 py-2 text-left">Cabang</th>
-                            </>
-                          ) : (
-                            <>
-                              <th className="px-4 py-2 text-left">Terminal ID</th>
-                              <th className="px-4 py-2 text-left">Status</th>
-                              <th className="px-4 py-2 text-left">Entity Name</th>
-                              <th className="px-4 py-2 text-left">Start Time</th>
-                            </>
-                          )}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {currentPreview.map((item, idx) => (
-                          <tr key={idx} className="border-b">
-                            {uploadSource === 'vendor' ? (
-                              <>
-                                <td className="px-4 py-2">{item.TID}</td>
-                                <td className="px-4 py-2">{item.MID}</td>
-                                <td className="px-4 py-2">{item.KOTA}</td>
-                                <td className="px-4 py-2">{item.CABANG_PENGELOLA}</td>
-                              </>
-                            ) : (
-                              <>
-                                <td className="px-4 py-2">{item.TERMINAL_ID_NR}</td>
-                                <td className="px-4 py-2">{item.STATUS}</td>
-                                <td className="px-4 py-2">{item.ENTITY_NAME}</td>
-                                <td className="px-4 py-2">{item.ACTUAL_START_TIME}</td>
-                              </>
-                            )}
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
           </TabsContent>
         </Tabs>
 

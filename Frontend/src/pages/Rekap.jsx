@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { Plus, Download, AlertTriangle, FileText, Search } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -19,12 +19,12 @@ import Loading from '@/components/common/Loading'
 
 const Rekap = () => {
   const { machines, loading, error, fetchMachines } = useRekap()
-  const { exportToPDF, exportToExcel, getAvailableYears, filename } = useExport()
+  const { exportToPDF, exportToExcel, getAvailableYears } = useExport()
   const [searchTerm, setSearchTerm] = useState('')
   
   // Export modal states
   const [showExportModal, setShowExportModal] = useState(false)
-  const [exportType, setExportType] = useState('pdf') // 'pdf' or 'excel'
+  const [exportType, setExportType] = useState('pdf')
 
   const {
     filterStatus,
@@ -44,18 +44,44 @@ const Rekap = () => {
 
   const { currentPage, totalPages, paginatedItems, goToPage } = usePagination(filteredData, 10)
 
-  const handleSearch = (value) => {
-    setSearchTerm(value)
-    if (value.length >= 3 || value.length === 0) {
-      fetchMachines(value)
+  // Listen untuk refresh event
+  useEffect(() => {
+    const handleRekapUpdated = () => {
+      console.log('Rekap updated, refreshing data...')
+      fetchMachines()
     }
-  }
+
+    addEventListener('rekapUpdated', handleRekapUpdated)
+    
+    return () => removeEventListener('rekapUpdated', handleRekapUpdated)
+  }, [fetchMachines])
+
+  //Debounced search dengan useEffect
+  useEffect(() => {
+    // Jangan search jika kosong atau kurang dari 3 karakter
+    if (searchTerm.length === 0) {
+      fetchMachines('')
+      return
+    }
+
+    if (searchTerm.length < 3) {
+      return // Tunggu sampai minimal 3 karakter
+    }
+
+    // Set timeout untuk debounce (tunggu 500ms setelah user berhenti mengetik)
+    const timeoutId = setTimeout(() => {
+      console.log('Searching for:', searchTerm)
+      fetchMachines(searchTerm)
+    }, 500)
+
+    // Cleanup timeout jika user masih mengetik
+    return () => clearTimeout(timeoutId)
+  }, [searchTerm, fetchMachines])
 
   const handleAddClick = () => {
     dispatchEvent(new Event('openAddModal'))
   }
 
-  // Handle export button clicks
   const handleExportPDFClick = () => {
     setExportType('pdf')
     setShowExportModal(true)
@@ -66,7 +92,6 @@ const Rekap = () => {
     setShowExportModal(true)
   }
 
-  // Handle actual export with selected years
   const handleExport = (selectedYears) => {
     if (exportType === 'pdf') {
       exportToPDF(filteredData, 'rekap-mesin', selectedYears)
@@ -75,7 +100,7 @@ const Rekap = () => {
     }
   }
 
-  const newVendorCount = machines.filter((m) => m.status_data === 'VENDOR_ONLY').length
+  const newVendorCount = machines.filter((m) => m.status_data === 'VENDOR_ONLY' || m.status_data === 'vendor_only').length
   const yearsForExport = getAvailableYears(filteredData)
 
   if (loading && machines.length === 0) {
@@ -89,6 +114,9 @@ const Rekap = () => {
           <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-3" />
           <h3 className="text-lg font-semibold text-red-800 mb-2">Failed to load rekap data</h3>
           <p className="text-red-600">{error}</p>
+          <Button onClick={() => fetchMachines()} className="mt-4">
+            Coba Lagi
+          </Button>
         </div>
       </section>
     )
@@ -141,12 +169,20 @@ const Rekap = () => {
                 <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                 <Input
                   id="search"
-                  placeholder="Terminal ID / Merchant"
+                  placeholder="Terminal ID / Merchant (min. 3 karakter)"
                   className="pl-9"
                   value={searchTerm}
-                  onChange={(e) => handleSearch(e.target.value)}
+                  onChange={(e) => setSearchTerm(e.target.value)} // ✅ Cukup update state
                 />
+                {loading && searchTerm.length >= 3 && (
+                  <Loading/>
+                )}
               </div>
+              {searchTerm.length > 0 && searchTerm.length < 3 && (
+                <p className="text-xs text-gray-500 mt-1">
+                  Ketik minimal 3 karakter untuk mencari
+                </p>
+              )}
             </div>
             <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mt-4">
               <div>
@@ -172,8 +208,8 @@ const Rekap = () => {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Semua Data</SelectItem>
-                    <SelectItem value="TERDATA_BANK">Terdata Bank</SelectItem>
-                    <SelectItem value="VENDOR_ONLY">Vendor Only</SelectItem>
+                    <SelectItem value="terdata_di_bank">Terdata Bank</SelectItem>
+                    <SelectItem value="vendor_only">Vendor Only</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -209,7 +245,13 @@ const Rekap = () => {
       {filteredData.length === 0 ? (
         <Card>
           <CardContent className="p-12 text-center">
-            <EmptyState icon={FileText} title="Tidak ada data mesin yang terdaftar" />
+            <EmptyState 
+              icon={FileText} 
+              title={searchTerm.length >= 3 
+                ? `Tidak ada hasil untuk "${searchTerm}"` 
+                : "Tidak ada data mesin yang terdaftar"
+              } 
+            />
           </CardContent>
         </Card>
       ) : (
@@ -235,4 +277,4 @@ const Rekap = () => {
   )
 }
 
-export default Rekap;
+export default Rekap

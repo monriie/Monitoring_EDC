@@ -1,6 +1,6 @@
 import axios from 'axios'
 
-const BASE_URL = import.meta.env.VITE_BASE_URL || 'http://localhost:3000'
+const BASE_URL = import.meta.env.VITE_BASE_URL
 
 const apiClient = axios.create({
   baseURL: BASE_URL,
@@ -97,23 +97,39 @@ export const sewaAPI = {
 export const mesinAPI = {
   getDetail: async (terminalId) => {
     try {
-      return await apiClient.get(`api/rekap/${terminalId}`)
+      return await apiClient.get(`api/detail-mesin/${terminalId}`)
     } catch (error) {
-      const allMachines = await apiClient.get('api/rekap')
-      const machines = Array.isArray(allMachines) ? allMachines : []
-      const machine = allMachines.find(m => m.terminal_id === terminalId)
-      
-      if (!machine) {
-        throw new Error('Mesin tidak ditemukan')
-      }
-      
-      return machine
+      throw new Error('Mesin tidak ditemukan')
     }
   },
   
   update: (terminalId, data) => {
-    console.warn('Update endpoint not implemented in backend')
-    return Promise.resolve({ message: 'Update success (mock)' })
+   return apiClient.put(`api/detail-mesin/${terminalId}`, data)
+  },
+}
+
+// Excel Upload API
+export const excelAPI = {
+  uploadVendor: async (file) => {
+    const formData = new FormData()
+    formData.append('file', file)
+    
+    return apiClient.post('api/excel/upload-vendor', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    })
+  },
+  
+  uploadBank: async (file) => {
+    const formData = new FormData()
+    formData.append('file', file)
+    
+    return apiClient.post('api/excel/upload-bank', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    })
   },
 }
 
@@ -140,9 +156,4 @@ export const authAPI = {
   },
 }
 
-// export const exportAPI = {
-//   exportPDF: (data) => apiClient.post('api/export/pdf', data, { responseType: 'blob' }),
-//   exportExcel: (data) => apiClient.post('api/export/excel', data, { responseType: 'blob' }),
-// }
-
-export default apiClient
+export default apiClient;
