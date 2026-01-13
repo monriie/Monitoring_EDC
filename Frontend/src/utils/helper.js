@@ -1,3 +1,5 @@
+import { MS_PER_DAY } from "./constants";
+
 export const calculateLoss = (machine, daysOverdue) => {
   if (!machine.biaya_sewa || daysOverdue <= 0) return 0
   const dailyCost = machine.biaya_sewa / 30
@@ -5,32 +7,38 @@ export const calculateLoss = (machine, daysOverdue) => {
 }
 
 export const getOverdueInfo = (machine, today = new Date()) => {
-  if (!machine.estimasi_selesai || machine.status_mesin !== 'PERBAIKAN') {
+  if (!machine.estimasi_selesai) {
     return { 
       isOverdue: false, 
       daysLate: 0, 
       isWarning: false,
-      isPerbaikan: false,
-      statusPerbaikan: null
+      isPerbaikan: true,
+      statusPerbaikan: 'PERBAIKAN'
     }
   }
 
   const estimate = new Date(machine.estimasi_selesai)
-  const diff = Math.ceil((today - estimate) / (1000 * 60 * 60 * 24))
   
-  const isOverdue = diff > 0
-  const isWarning = diff <= 0 && Math.ceil((estimate - today) / (1000 * 60 * 60 * 24)) <= 3
-  const isPerbaikan = !isOverdue && !isWarning
-
+  const diff = Math.floor((today - estimate) / MS_PER_DAY)
   let statusPerbaikan = 'PERBAIKAN'
-  if (isOverdue) statusPerbaikan = 'OVERDUE'
-  else if (isWarning) statusPerbaikan = 'WARNING'
+  let isOverdue = false
+  let isWarning = false
+  let daysLate = 0
+  
+  if (diff >= 3) {
+    statusPerbaikan = 'OVERDUE'
+    isOverdue = true
+    daysLate = diff
+  } else if (diff >= 0) {
+    statusPerbaikan = 'WARNING'
+    isWarning = true
+  }
 
   return {
+    statusPerbaikan,
     isOverdue,
-    daysLate: diff > 0 ? diff : 0,
     isWarning,
-    isPerbaikan,
-    statusPerbaikan
+    isPerbaikan: statusPerbaikan === 'PERBAIKAN',
+    daysLate,
   }
-}
+};

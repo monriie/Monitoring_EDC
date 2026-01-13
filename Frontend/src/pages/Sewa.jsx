@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Download, CheckCircle, FileText, DollarSign, AlertTriangle, Search } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -18,16 +18,15 @@ import { formatCurrency } from '@/utils/formatter'
 import Loading from '@/components/common/Loading'
 import EmptyState from '@/components/common/EmptyState'
 import ExportYearFilterModal from '@/components/modal/ExportYearFilterModal'
-import { exportSewaToPDF } from '@/utils/exportUtils'
 
 const Sewa = () => {
-  const { summary, sewaList, loading, error, searchSewa } = useSewa()
-  const { exportToExcel, exportSewatoPDF,filename, getAvailableYears } = useExport()
+  const { summary, sewaList, loading, error, fetchList, searchSewa } = useSewa()
+  const { exportToExcel, exportSewatoPDF, getAvailableYears } = useExport()
   const [searchTerm, setSearchTerm] = useState('')
 
-    // Export modal states
-    const [showExportModal, setShowExportModal] = useState(false)
-    const [exportType, setExportType] = useState('pdf') // 'pdf' or 'excel'
+  // Export modal states
+  const [showExportModal, setShowExportModal] = useState(false)
+  const [exportType, setExportType] = useState('pdf')
 
   // Apply filters
   const {
@@ -35,8 +34,6 @@ const Sewa = () => {
     setFilterStatus,
     filterSewa,
     setFilterSewa,
-    // filterCabang,
-    // setFilterCabang,
     filterLetak,
     setFilterLetak,
     filterYear,
@@ -51,13 +48,36 @@ const Sewa = () => {
   // Pagination
   const { currentPage, totalPages, paginatedItems, goToPage } = usePagination(filteredData, 10)
 
-  // Handle search
-  const handleSearch = (value) => {
-    setSearchTerm(value)
-    if (value.length >= 3 || value.length === 0) {
-      searchSewa(value)
+  // Listen untuk refresh event
+  useEffect(() => {
+    const handleRekapUpdated = () => {
+      console.log('Rekap updated, refreshing sewa data...')
+      fetchList()
     }
-  }
+
+    addEventListener('rekapUpdated', handleRekapUpdated)
+    
+    return () => removeEventListener('rekapUpdated', handleRekapUpdated)
+  }, [fetchList])
+
+  // Debounced search dengan useEffect
+  useEffect(() => {
+    if (searchTerm.length === 0) {
+      fetchList()
+      return
+    }
+
+    if (searchTerm.length < 3) {
+      return
+    }
+
+    const timeoutId = setTimeout(() => {
+      console.log('Searching sewa for:', searchTerm)
+      searchSewa(searchTerm)
+    }, 500)
+
+    return () => clearTimeout(timeoutId)
+  }, [searchTerm, fetchList, searchSewa])
 
   // Handle export button clicks
   const handleExportPDFClick = () => {
@@ -73,18 +93,17 @@ const Sewa = () => {
   // Handle actual export with selected years
   const handleExport = (selectedYears) => {
     if (exportType === 'pdf') {
-      exportSewaToPDF(filteredData, 'sewa-mesin', selectedYears)
+      exportSewatoPDF(filteredData, 'sewa-mesin', selectedYears)
     } else {
       exportToExcel(filteredData, 'sewa-mesin', selectedYears)
     }
   }
+
   const yearsForExport = getAvailableYears(filteredData)
 
   // Loading state
   if (loading && sewaList.length === 0) {
-    return (
-      <Loading/>
-    )
+    return <Loading/>
   }
 
   return (
@@ -169,12 +188,22 @@ const Sewa = () => {
                 <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                 <Input
                   id="search"
-                  placeholder="Terminal ID / Nasabah"
+                  placeholder="Terminal ID / Merchant (min. 3 karakter)"
                   className="pl-9"
                   value={searchTerm}
-                  onChange={(e) => handleSearch(e.target.value)}
+                  onChange={(e) => setSearchTerm(e.target.value)}
                 />
+                {loading && searchTerm.length >= 3 && (
+                  <div className="absolute right-3 top-3">
+                    <div className="animate-spin h-4 w-4 border-2 border-gray-300 border-t-blue-600 rounded-full" />
+                  </div>
+                )}
               </div>
+              {searchTerm.length > 0 && searchTerm.length < 3 && (
+                <p className="text-xs text-gray-500 mt-1">
+                  Ketik minimal 3 karakter untuk mencari
+                </p>
+              )}
             </div>
             <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mt-4">
               <div>
@@ -205,22 +234,6 @@ const Sewa = () => {
                   </SelectContent>
                 </Select>
               </div>
-              {/* <div>
-                <Label htmlFor="cabang">Cabang</Label>
-                <Select value={filterCabang} onValueChange={setFilterCabang}>
-                  <SelectTrigger id="cabang" className="mt-2 w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Semua Cabang</SelectItem>
-                    {availableBranches.map((branch) => (
-                      <SelectItem key={branch} value={branch}>
-                        {branch}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div> */}
               <div>
                 <Label htmlFor="letak">Letak Mesin</Label>
                 <Select value={filterLetak} onValueChange={setFilterLetak}>
@@ -253,7 +266,10 @@ const Sewa = () => {
           <CardContent className="p-12 text-center">
             <EmptyState
               icon={FileText}
-              title="Tidak ada mesin yang di sewa"
+              title={searchTerm.length >= 3 
+                ? `Tidak ada hasil untuk "${searchTerm}"` 
+                : "Tidak ada mesin yang di sewa"
+              }
             />
           </CardContent>
         </Card>

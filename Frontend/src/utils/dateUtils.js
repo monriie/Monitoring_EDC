@@ -4,8 +4,8 @@ export const calculateDaysOverdue = (estimateDate) => {
   if (!estimateDate) return 0
   const today = new Date()
   const estimate = new Date(estimateDate)
-  const diff = Math.ceil((today - estimate) / MS_PER_DAY)
-  return Math.max(0, diff)
+  const diff = Math.floor((today - estimate) / MS_PER_DAY)
+  return diff >= 3 ? diff : 0
 }
 
 export const isNewMachine = (tanggalPasang, thresholdDays = 30) => {

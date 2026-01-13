@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { AlertTriangle, DollarSign, CheckCircle, Search, FileText } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import StatCard from '@/components/common/StatCard'
@@ -16,7 +16,7 @@ import { formatCurrency } from '@/utils/formatter'
 import Loading from '@/components/common/Loading'
 
 const Overdue = () => {
-  const { summary, overdueList, loading, error, searchOverdue } = useOverdue()
+  const { summary, overdueList, loading, error, fetchList, searchOverdue } = useOverdue()
   const [searchTerm, setSearchTerm] = useState('')
 
   // Apply filters to overdue machines
@@ -33,20 +33,42 @@ const Overdue = () => {
     setSortOrder,
     availableYears,
     availableBranches,
-    availableLetak,
     filteredData,
   } = useFilters(overdueList)
 
   // Pagination
   const { currentPage, totalPages, paginatedItems, goToPage } = usePagination(filteredData, 10)
 
-  // Handle search with debounce
-  const handleSearch = (value) => {
-    setSearchTerm(value)
-    if (value.length >= 3 || value.length === 0) {
-      searchOverdue(value)
+  // Listen untuk refresh event
+  useEffect(() => {
+    const handleRekapUpdated = () => {
+      console.log('Rekap updated, refreshing overdue data...')
+      fetchList()
     }
-  }
+
+    addEventListener('rekapUpdated', handleRekapUpdated)
+    
+    return () => removeEventListener('rekapUpdated', handleRekapUpdated)
+  }, [fetchList])
+
+  // Debounced search dengan useEffect
+  useEffect(() => {
+    if (searchTerm.length === 0) {
+      fetchList()
+      return
+    }
+
+    if (searchTerm.length < 3) {
+      return
+    }
+
+    const timeoutId = setTimeout(() => {
+      console.log('Searching overdue for:', searchTerm)
+      searchOverdue(searchTerm)
+    }, 500)
+
+    return () => clearTimeout(timeoutId)
+  }, [searchTerm, fetchList, searchOverdue])
 
   // Handle stat card click for filtering
   const handleStatClick = (status) => {
@@ -55,9 +77,7 @@ const Overdue = () => {
 
   // Loading state
   if (loading && overdueList.length === 0) {
-    return (
-      <Loading/>
-    )
+    return <Loading/>
   }
 
   // Error state
@@ -85,15 +105,15 @@ const Overdue = () => {
       {/* Statistics Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div
-        role="button"
-        tabIndex={0}
-        onClick={() => handleStatClick('PERBAIKAN')}
-        className=" cursor-pointer rounded-xl shadow-none
-          transition-all duration-200
-          hover:shadow-md hover:-translate-y-0.5
-          hover:ring-2 hover:ring-[#00AEEF]/40
-          focus:outline-none focus:ring-2 focus:ring-[#00AEEF]
-        ">
+          role="button"
+          tabIndex={0}
+          onClick={() => handleStatClick('PERBAIKAN')}
+          className="cursor-pointer rounded-xl shadow-none
+            transition-all duration-200
+            hover:shadow-md hover:-translate-y-0.5
+            hover:ring-2 hover:ring-[#00AEEF]/40
+            focus:outline-none focus:ring-2 focus:ring-[#00AEEF]"
+        >
           <StatCard
             title="Perbaikan"
             value={summary.total_perbaikan - summary.warning - summary.overdue}
@@ -103,15 +123,15 @@ const Overdue = () => {
         </div>
 
         <div 
-        role="button"
-        tabIndex={0}
-        onClick={() => handleStatClick('WARNING')} 
-        className="cursor-pointer rounded-xl shadow-none
-          transition-all duration-200
-          hover:shadow-md hover:-translate-y-0.5
-          hover:ring-2 hover:ring-[#00AEEF]/40
-          focus:outline-none focus:ring-2 focus:ring-[#00AEEF]
-        ">
+          role="button"
+          tabIndex={0}
+          onClick={() => handleStatClick('WARNING')} 
+          className="cursor-pointer rounded-xl shadow-none
+            transition-all duration-200
+            hover:shadow-md hover:-translate-y-0.5
+            hover:ring-2 hover:ring-[#00AEEF]/40
+            focus:outline-none focus:ring-2 focus:ring-[#00AEEF]"
+        >
           <StatCard
             title="Warning (≤ 3 hari)"
             value={summary.warning}
@@ -121,15 +141,15 @@ const Overdue = () => {
         </div>
 
         <div 
-        role="button"
-        tabIndex={0}
-        onClick={() => handleStatClick('OVERDUE')} 
-        className="cursor-pointer rounded-xl shadow-none
-          transition-all duration-200
-          hover:shadow-md hover:-translate-y-0.5
-          hover:ring-2 hover:ring-[#00AEEF]/40
-          focus:outline-none focus:ring-2 focus:ring-[#00AEEF]
-        ">
+          role="button"
+          tabIndex={0}
+          onClick={() => handleStatClick('OVERDUE')} 
+          className="cursor-pointer rounded-xl shadow-none
+            transition-all duration-200
+            hover:shadow-md hover:-translate-y-0.5
+            hover:ring-2 hover:ring-[#00AEEF]/40
+            focus:outline-none focus:ring-2 focus:ring-[#00AEEF]"
+        >
           <StatCard
             title="Overdue"
             value={summary.overdue}
@@ -156,12 +176,22 @@ const Overdue = () => {
                 <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                 <Input
                   id="search"
-                  placeholder="Terminal ID / Nasabah"
+                  placeholder="Terminal ID / Merchant (min. 3 karakter)"
                   className="pl-9"
                   value={searchTerm}
-                  onChange={(e) => handleSearch(e.target.value)}
+                  onChange={(e) => setSearchTerm(e.target.value)}
                 />
+                {loading && searchTerm.length >= 3 && (
+                  <div className="absolute right-3 top-3">
+                    <div className="animate-spin h-4 w-4 border-2 border-gray-300 border-t-blue-600 rounded-full" />
+                  </div>
+                )}
               </div>
+              {searchTerm.length > 0 && searchTerm.length < 3 && (
+                <p className="text-xs text-gray-500 mt-1">
+                  Ketik minimal 3 karakter untuk mencari
+                </p>
+              )}
             </div>
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
               <div>
@@ -212,7 +242,10 @@ const Overdue = () => {
           <CardContent className="p-12 text-center">
             <EmptyState
               icon={FileText}
-              title="Tidak ada mesin overdue atau mendekati deadline"
+              title={searchTerm.length >= 3 
+                ? `Tidak ada hasil untuk "${searchTerm}"` 
+                : "Tidak ada mesin overdue atau mendekati deadline"
+              }
             />
           </CardContent>
         </Card>
