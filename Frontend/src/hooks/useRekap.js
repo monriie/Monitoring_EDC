@@ -38,7 +38,7 @@ export const useRekap = () => {
       toast.success('Rekap mesin berhasil ditambahkan')
       await fetchMachines()
       
-      // ✅ Trigger refresh event
+      // Trigger refresh event
       dispatchEvent(new Event('rekapUpdated'))
       
       return { success: true, data: response }
@@ -65,10 +65,10 @@ export const useRekap = () => {
         { duration: 5000 }
       )
       
-      // ✅ Refresh data
+      // Refresh data
       await fetchMachines()
       
-      // ✅ Trigger refresh event
+      // Trigger refresh event
       dispatchEvent(new Event('rekapUpdated'))
       
       return { success: true, data: response }
@@ -95,10 +95,10 @@ export const useRekap = () => {
         { duration: 5000 }
       )
       
-      // ✅ Refresh data
+      // Refresh data
       await fetchMachines()
       
-      // ✅ Trigger refresh event
+      // Trigger refresh event
       dispatchEvent(new Event('rekapUpdated'))
       
       return { success: true, data: response }

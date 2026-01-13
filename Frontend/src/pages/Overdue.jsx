@@ -16,7 +16,7 @@ import { formatCurrency } from '@/utils/formatter'
 import Loading from '@/components/common/Loading'
 
 const Overdue = () => {
-  const { summary, overdueList, loading, error, fetchList, searchOverdue } = useOverdue()
+  const { summary, overdueList, loading, error, fetchList, fetchSummary, searchOverdue } = useOverdue()
   const [searchTerm, setSearchTerm] = useState('')
 
   // Apply filters to overdue machines
@@ -44,6 +44,7 @@ const Overdue = () => {
     const handleRekapUpdated = () => {
       console.log('Rekap updated, refreshing overdue data...')
       fetchList()
+      fetchSummary()
     }
 
     addEventListener('rekapUpdated', handleRekapUpdated)

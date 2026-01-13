@@ -208,8 +208,8 @@ const Rekap = () => {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Semua Data</SelectItem>
-                    <SelectItem value="terdata_di_bank">Terdata Bank</SelectItem>
-                    <SelectItem value="vendor_only">Vendor Only</SelectItem>
+                    <SelectItem value="TERDATA_BANK">Terdata Bank</SelectItem>
+                    <SelectItem value="VENDOR_ONLY">Vendor Only</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

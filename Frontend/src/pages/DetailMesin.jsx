@@ -16,7 +16,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import Breadcrumb from '@/components/common/Breadcrumb'
 import StatusBadge from '@/components/common/StatusBadge'
 import { calculateDaysOverdue } from '@/utils/dateUtils'
-import { calculateLoss } from '@/utils/helper'
+import { calculateLoss, normalizeStatusData } from '@/utils/helper'
 import { formatCurrency } from '@/utils/formatter'
 import { useMesinDetail } from '@/hooks/useMesinDetail'
 import { useParams } from 'react-router'
@@ -24,7 +24,7 @@ import Loading from '@/components/common/Loading'
 
 const DetailMesin = () => {
   const { id } = useParams()
-  const { machine, loading, error, updateMachine, fetchDetail } = useMesinDetail(id)
+  const { machine, loading, error, updateMachine, fetchDetail } = useMesinDetail(id) 
 
   const handleEditClick = () => {
     if (machine) {
@@ -37,7 +37,7 @@ const DetailMesin = () => {
         tipe_edc: machine.informasi_mesin?.tipe_edc || machine.tipe_edc || '',
         vendor: machine.informasi_mesin?.vendor || machine.vendor || '',
         status_mesin: machine.informasi_mesin?.status_mesin || machine.status_mesin || 'AKTIF',
-        status_data: machine.informasi_mesin?.status_data || machine.status_data || 'vendor_only',
+        status_data: machine.status_data || machine.informasi_mesin?.status_data || 'VENDOR_ONLY',
         status_sewa: machine.informasi_sewa?.status_sewa || machine.status_sewa || 'BERAKHIR',
         status_letak: machine.informasi_lokasi?.status_letak || machine.status_letak || 'NASABAH',
         tanggal_pasang: machine.informasi_lokasi?.tanggal_pasang || machine.tanggal_pasang || '',
@@ -60,12 +60,20 @@ const DetailMesin = () => {
         tipe_edc: updatedData.tipe_edc || '',
         vendor: updatedData.vendor || '',
         status_mesin: updatedData.status_mesin || 'AKTIF',
-        status_data: updatedData.status_data || 'vendor_only',
+        status_data:updatedData.status_data || 'VENDOR_ONLY',
         status_sewa: updatedData.status_sewa || 'BERAKHIR',
         status_letak: updatedData.status_letak || 'NASABAH',
-        tanggal_pasang: updatedData.tanggal_pasang || '',
+
+        tanggal_pasang: updatedData.tanggal_pasang
+          ? new Date(updatedData.tanggal_pasang)
+          : null,
+
         biaya_bulanan: parseInt(updatedData.biaya_sewa) || 0,
-        estimasi_selesai: updatedData.estimasi_selesai || null,
+
+        estimasi_selesai:
+          updatedData.estimasi_selesai
+            ? new Date(updatedData.estimasi_selesai)
+            : null,
       }
 
       // console.log('Sending to backend:', backendData)
@@ -101,10 +109,10 @@ const DetailMesin = () => {
   const mid = machine.informasi_mesin?.mid || machine.mid || 'N/A'
   const tipeEdc = machine.informasi_mesin?.tipe_edc || machine.tipe_edc || 'N/A'
   const statusMesin = machine.informasi_mesin?.status_mesin || machine.status_mesin || 'AKTIF'
-  const statusData = machine.informasi_mesin?.status_data || machine.status_data || 'vendor_only'
-  const sumberData = machine.sumber_data || statusData
+  const statusData = normalizeStatusData(machine.status_data || machine.informasi_mesin?.status_data || 'VENDOR_ONLY').toUpperCase()
+  const sumberData = statusData
   
-  const namaNasabah = machine.informasi_lokasi?.nama_nasabah || machine.nama_nasabah || 'Belum terdata'
+  const namaNasabah = machine.nama_nasabah?.trim()? machine.nama_nasabah : machine.informasi_lokasi?.nama_nasabah?.trim()? machine.informasi_lokasi.nama_nasabah : 'Belum terdata'
   const cabang = machine.informasi_lokasi?.cabang || machine.cabang || 'N/A'
   const kota = machine.informasi_lokasi?.kota || machine.kota || 'N/A'
   const tanggalPasang = machine.informasi_lokasi?.tanggal_pasang || machine.tanggal_pasang || 'N/A'
