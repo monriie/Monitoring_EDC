@@ -50,12 +50,10 @@ const DetailMesin = () => {
     }
   }
 
-  // Handle machine updated dari modal
   useEffect(() => {
     const handleMachineUpdated = async (e) => {
       const updatedData = e.detail
       
-      // Transform data ke format backend
       const backendData = {
         nama_nasabah: updatedData.nama_nasabah,
         kota: updatedData.kota,
@@ -73,7 +71,7 @@ const DetailMesin = () => {
 
       const result = await updateMachine(backendData)
       if (result.success) {
-        await fetchDetail() // Refresh detail
+        await fetchDetail()
       }
     }
 
@@ -87,7 +85,7 @@ const DetailMesin = () => {
 
   if (error || !machine) {
     return (
-      <div className="flex items-center justify-center">
+      <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
           <Search size={48} className="mx-auto mb-4 text-gray-400" />
           <p className="text-lg text-gray-600">Data mesin tidak ditemukan</p>
@@ -96,8 +94,24 @@ const DetailMesin = () => {
     )
   }
 
-  const daysOverdue = calculateDaysOverdue(machine.informasi_sewa?.estimasi_selesai)
-  const loss = calculateLoss({ biaya_sewa: machine.informasi_sewa?.biaya_bulanan || 0 }, daysOverdue)
+  // Safe access dengan optional chaining dan default values
+  const terminalId = machine.informasi_mesin?.terminal_id || machine.terminal_id || 'N/A'
+  const mid = machine.informasi_mesin?.mid || machine.mid || 'N/A'
+  const tipeEdc = machine.informasi_mesin?.tipe_edc || machine.tipe_edc || 'N/A'
+  const statusMesin = machine.informasi_mesin?.status_mesin || machine.status_mesin || 'AKTIF'
+  const statusData = machine.informasi_mesin?.status_data || machine.status_data || 'VENDOR_ONLY'
+  const sumberData = machine.sumber_data || statusData
+  
+  const namaNasabah = machine.informasi_lokasi?.nama_nasabah || machine.nama_nasabah || 'Belum terdata'
+  const cabang = machine.informasi_lokasi?.cabang || machine.cabang || 'N/A'
+  const kota = machine.informasi_lokasi?.kota || machine.kota || 'N/A'
+  const tanggalPasang = machine.informasi_lokasi?.tanggal_pasang || machine.tanggal_pasang || 'N/A'
+  
+  const biayaBulanan = machine.informasi_sewa?.biaya_bulanan || machine.biaya_sewa || 0
+  const estimasiSelesai = machine.informasi_sewa?.estimasi_selesai || machine.estimasi_selesai || null
+
+  const daysOverdue = calculateDaysOverdue(estimasiSelesai)
+  const loss = calculateLoss({ biaya_sewa: biayaBulanan }, daysOverdue)
 
   const InfoItem = ({ label, value, icon: Icon }) => (
     <div className="flex items-start gap-3 group">
@@ -115,19 +129,19 @@ const DetailMesin = () => {
 
   return (
     <section className="space-y-6">
-      <Breadcrumb items={['Detail Mesin', machine.informasi_mesin.terminal_id]} />
+      <Breadcrumb items={['Detail Mesin', terminalId]} />
 
       {/* Header Section */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
         <div className="flex flex-row items-center justify-between gap-4">
           <div className="flex-1">
             <h1 className="text-2xl font-bold text-gray-900 mb-1">
-              TID {machine.informasi_mesin.terminal_id}
+              TID {terminalId}
             </h1>
             <div className="flex flex-wrap items-center gap-2 text-sm text-gray-600">
-              <span className="font-medium">MID {machine.informasi_mesin.mid}</span>
+              <span className="font-medium">MID {mid}</span>
               <span className="text-gray-400">•</span>
-              <span>{machine.informasi_mesin.tipe_edc || 'N/A'}</span>
+              <span>{tipeEdc}</span>
             </div>
           </div>
           <Button onClick={handleEditClick} className="bg-[#00AEEF] hover:bg-[#0099D6] whitespace-nowrap">
@@ -150,17 +164,17 @@ const DetailMesin = () => {
           <CardContent className="grid grid-cols-2 gap-3">
             <div>
               <p className="text-xs text-gray-500 mb-1">Status Mesin</p>
-              <StatusBadge status={machine.informasi_mesin.status_mesin} />
+              <StatusBadge status={statusMesin} />
             </div>
             <div>
               <p className="text-xs text-gray-500 mb-1">Status Data</p>
-              <StatusBadge status={machine.informasi_mesin.status_data} />
+              <StatusBadge status={statusData} />
             </div>
             <div className="pt-4 border-t col-span-2 mt-2">
               <div className="flex flex-wrap gap-3">
                 <div className="flex items-center gap-2 bg-green-50 text-green-700 px-3 py-2 rounded-lg border border-green-200">
                   <CheckCircle size={16} />
-                  <span className="font-medium text-sm">{machine.sumber_data}</span>
+                  <span className="font-medium text-sm">{sumberData}</span>
                 </div>
               </div>
             </div>
@@ -178,14 +192,14 @@ const DetailMesin = () => {
           <CardContent className="space-y-3">
             <InfoItem
               label="Nama Nasabah"
-              value={machine.informasi_lokasi.nama_nasabah || 'Belum terdata'}
+              value={namaNasabah}
               icon={Building2}
             />
-            <InfoItem label="Cabang Pengelola" value={machine.informasi_lokasi.cabang} icon={Building2} />
-            <InfoItem label="Kota" value={machine.informasi_lokasi.kota} icon={MapPin} />
+            <InfoItem label="Cabang Pengelola" value={cabang} icon={Building2} />
+            <InfoItem label="Kota" value={kota} icon={MapPin} />
             <InfoItem
               label="Tanggal Pemasangan"
-              value={machine.informasi_lokasi.tanggal_pasang}
+              value={tanggalPasang}
               icon={Calendar}
             />
           </CardContent>
@@ -203,16 +217,16 @@ const DetailMesin = () => {
             <div>
               <p className="text-xs text-gray-600 mb-1">Biaya Sewa/Bulan</p>
               <p className="text-xl font-bold text-gray-900">
-                {formatCurrency(machine.informasi_sewa.biaya_bulanan)}
+                {formatCurrency(biayaBulanan)}
               </p>
             </div>
 
-            {machine.informasi_mesin.status_mesin === 'PERBAIKAN' && (
+            {statusMesin === 'PERBAIKAN' && (
               <>
                 <div className="pt-2 border-t">
                   <InfoItem
                     label="Estimasi Selesai"
-                    value={machine.informasi_sewa.estimasi_selesai || 'Belum ada'}
+                    value={estimasiSelesai || 'Belum ada'}
                     icon={Calendar}
                   />
                 </div>
