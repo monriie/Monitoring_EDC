@@ -85,7 +85,7 @@ const DetailMesin = () => {
 
   if (error || !machine) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
+      <div className="flex items-center justify-center min-h-100">
         <div className="text-center">
           <Search size={48} className="mx-auto mb-4 text-gray-400" />
           <p className="text-lg text-gray-600">Data mesin tidak ditemukan</p>

@@ -414,7 +414,7 @@ const AddModal = () => {
                   <div className="font-semibold mb-4">
                     Preview Data {uploadSource === 'vendor' ? 'Vendor' : 'Bank'} ({currentPreview.length} record)
                   </div>
-                  <div className="overflow-x-auto">
+                  <div className="relative overflow-x-auto">
                     <table className="w-full text-sm">
                       <thead className="bg-gray-100">
                         <tr>
@@ -424,7 +424,6 @@ const AddModal = () => {
                               <th className="px-4 py-2 text-left">MID</th>
                               <th className="px-4 py-2 text-left">Kota</th>
                               <th className="px-4 py-2 text-left">Cabang</th>
-                              <th className="px-4 py-2 text-left">Type EDC</th>
                             </>
                           ) : (
                             <>
@@ -445,7 +444,6 @@ const AddModal = () => {
                                 <td className="px-4 py-2">{item.MID}</td>
                                 <td className="px-4 py-2">{item.KOTA}</td>
                                 <td className="px-4 py-2">{item.CABANG_PENGELOLA}</td>
-                                <td className="px-4 py-2">{item.TYPE_EDC}</td>
                               </>
                             ) : (
                               <>
@@ -482,7 +480,7 @@ const AddModal = () => {
               disabled={!currentFile}
             >
               <Upload className="h-4 w-4 mr-2" />
-              Upload {currentPreview.length} Data {uploadSource === 'vendor' ? 'Vendor' : 'Bank'}
+              Upload Data {uploadSource === 'vendor' ? 'Vendor' : 'Bank'}
             </Button>
           )}
         </DialogFooter>
