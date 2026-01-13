@@ -69,9 +69,9 @@ const Rekap = () => {
   // Handle actual export with selected years
   const handleExport = (selectedYears) => {
     if (exportType === 'pdf') {
-      exportToPDF(filteredData, 'rekap-mesin')
+      exportToPDF(filteredData, 'rekap-mesin', selectedYears)
     } else {
-      exportToExcel(filteredData, 'rekap-mesin')
+      exportToExcel(filteredData, 'rekap-mesin', selectedYears)
     }
   }
 

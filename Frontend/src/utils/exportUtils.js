@@ -67,7 +67,6 @@ export const exportToCSV = (data, filename, selectedYears = []) => {
       headers.join(';'),
       ...csvRows.map(row => 
         row.map(cell => {
-          // Handle cells with commas or quotes
           const cellStr = String(cell)
           if (cellStr.includes(';') || cellStr.includes('"') || cellStr.includes('\n')) {
             return `"${cellStr.replace(/"/g, '""')}"`
@@ -85,6 +84,7 @@ export const exportToCSV = (data, filename, selectedYears = []) => {
     const link = document.createElement('a')
     const url = URL.createObjectURL(blob)
     
+    // Generate filename dengan tahun
     const years = normalizeYears(selectedYears)
     const yearLabel = years.length > 0 
       ? `_${years.sort((a, b) => a - b).join('-')}`
@@ -107,7 +107,7 @@ export const exportToCSV = (data, filename, selectedYears = []) => {
 }
 
 // Export data ke PDF
-export const exportToPDF = (data, filename = 'export', selectedYears = []) => {
+export const exportToPDF = (data, filename, selectedYears = []) => {
   try {
     // Filter data by years if specified
     const filteredData = selectedYears.length > 0
@@ -123,10 +123,9 @@ export const exportToPDF = (data, filename = 'export', selectedYears = []) => {
       return false
     }
 
-    // Create PDF document (A4 landscape)
     const doc = new jsPDF('l', 'mm', 'a4')
     
-    // Add title
+    // Add title dengan tahun
     const years = normalizeYears(selectedYears)
     const yearLabel = years.length > 0 
       ? ` (Tahun ${years.sort((a, b) => a - b).join(', ')})`
@@ -136,7 +135,7 @@ export const exportToPDF = (data, filename = 'export', selectedYears = []) => {
     doc.text(`Rekap Mesin EDC${yearLabel}`, 14, 15)
     
     doc.setFontSize(10)
-    doc.text(`Bank Sumsel Babel`, 14, 22)
+    doc.text('Bank Sumsel Babel', 14, 22)
     doc.text(`Tanggal Export: ${new Date().toLocaleDateString('id-ID')}`, 14, 27)
     doc.text(`Total Data: ${filteredData.length} mesin`, 14, 32)
 
@@ -166,7 +165,7 @@ export const exportToPDF = (data, filename = 'export', selectedYears = []) => {
     ])
 
     // Add table to PDF
-    autoTable(doc,{
+    autoTable(doc, {
       head: [tableHeaders],
       body: tableData,
       startY: 38,
@@ -176,7 +175,7 @@ export const exportToPDF = (data, filename = 'export', selectedYears = []) => {
         font: 'helvetica'
       },
       headStyles: {
-        fillColor: [0, 174, 239], // Bank Sumsel blue
+        fillColor: [0, 174, 239],
         textColor: 255,
         fontStyle: 'bold'
       },
@@ -184,30 +183,13 @@ export const exportToPDF = (data, filename = 'export', selectedYears = []) => {
         fillColor: [245, 245, 245]
       },
       margin: { top: 38 },
-    //   didDrawPage: (data) => {
-    //     // Footer
-    //     const pageCount = doc.internal.getNumberOfPages()
-    //     const pageSize = doc.internal.pageSize
-    //     const pageHeight = pageSize.height || pageSize.getHeight()
-        
-    //     doc.setFontSize(8)
-    //     doc.text(
-    //       `Halaman ${data.pageNumber} dari ${pageCount}`,
-    //       data.settings.margin.left,
-    //       pageHeight - 10
-    //     )
-        
-    //     doc.text(
-    //       'PT Bank Pembangunan Daerah Sumatera Selatan dan Bangka Belitung',
-    //       pageSize.width / 2,
-    //       pageHeight - 10,
-    //       { align: 'center' }
-    //     )
-    //   }
     })
 
-    const yearSuffix = years.length > 0 ? `_${years.join('-')}` : ''
-    doc.save(`rekap-mesin${yearSuffix}.pdf`)
+    // Save dengan nama file yang benar
+    const yearSuffix = years.length > 0 
+      ? `_${years.sort((a, b) => a - b).join('-')}` 
+      : ''
+    doc.save(`${filename}${yearSuffix}.pdf`)
 
     return true
   } catch (error) {
@@ -218,14 +200,13 @@ export const exportToPDF = (data, filename = 'export', selectedYears = []) => {
 }
 
 // Export data Sewa ke PDF dengan format khusus
-export const exportSewaToPDF = (data, filename = 'sewa', selectedYears = []) => {
+export const exportSewaToPDF = (data, filename, selectedYears = []) => {
   try {
-
     const filteredData = selectedYears.length > 0
       ? data.filter(item => {
           if (!item.tanggal_pasang) return false
           const year = new Date(item.tanggal_pasang).getFullYear()
-          return years.includes(year)
+          return selectedYears.includes(year)
         })
       : data
 
@@ -245,7 +226,7 @@ export const exportSewaToPDF = (data, filename = 'sewa', selectedYears = []) => 
     doc.text(`Monitoring Sewa Mesin${yearLabel}`, 14, 15)
     
     doc.setFontSize(10)
-    doc.text(`Bank Sumsel Babel`, 14, 22)
+    doc.text('Bank Sumsel Babel', 14, 22)
     doc.text(`Tanggal Export: ${new Date().toLocaleDateString('id-ID')}`, 14, 27)
 
     // Calculate summary
@@ -279,7 +260,7 @@ export const exportSewaToPDF = (data, filename = 'sewa', selectedYears = []) => 
       formatCurrency(item.biaya_sewa || 0)
     ])
 
-    autoTable(doc,{
+    autoTable(doc, {
       head: [tableHeaders],
       body: tableData,
       startY: 47,
@@ -296,21 +277,13 @@ export const exportSewaToPDF = (data, filename = 'sewa', selectedYears = []) => 
       alternateRowStyles: {
         fillColor: [245, 245, 245]
       },
-    //   didDrawPage: (data) => {
-    //     const pageCount = doc.internal.getNumberOfPages()
-    //     const pageSize = doc.internal.pageSize
-    //     const pageHeight = pageSize.height || pageSize.getHeight()
-        
-    //     doc.setFontSize(8)
-    //     doc.text(
-    //       `Halaman ${data.pageNumber} dari ${pageCount}`,
-    //       data.settings.margin.left,
-    //       pageHeight - 10
-    //     )
-    //   }
     })
-    const yearSuffix = years.length > 0 ? `_${years.join('-')}` : ''
-    doc.save(`sewa-mesin${yearSuffix}.pdf`)
+
+    // Save dengan nama file yang benar
+    const yearSuffix = years.length > 0 
+      ? `_${years.sort((a, b) => a - b).join('-')}` 
+      : ''
+    doc.save(`${filename}${yearSuffix}.pdf`)
 
     return true
   } catch (error) {

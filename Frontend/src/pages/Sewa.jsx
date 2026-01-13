@@ -73,9 +73,9 @@ const Sewa = () => {
   // Handle actual export with selected years
   const handleExport = (selectedYears) => {
     if (exportType === 'pdf') {
-      exportSewaToPDF(filteredData, 'sewa-mesin')
+      exportSewaToPDF(filteredData, 'sewa-mesin', selectedYears)
     } else {
-      exportToExcel(filteredData, 'sewa-mesin')
+      exportToExcel(filteredData, 'sewa-mesin', selectedYears)
     }
   }
   const yearsForExport = getAvailableYears(filteredData)

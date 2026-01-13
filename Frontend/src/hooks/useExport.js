@@ -1,5 +1,5 @@
 import { useCallback } from 'react'
-import { exportToPDF as exportPDF, exportToCSV } from '@/utils/exportUtils'
+import { exportToPDF as exportPDF, exportToCSV, exportSewaToPDF } from '@/utils/exportUtils'
 import toast from 'react-hot-toast'
 
 export const useExport = () => {
@@ -17,21 +17,21 @@ export const useExport = () => {
   }, [])
 
   // Export data ke PDF
-  const exportToPDF = useCallback((data, selectedYears, filename) => {
+  const exportToPDF = useCallback((data, filename, selectedYears = []) => {
     try {
-      // Filter data dulu
-      const filteredData = filterDataByYears(data, selectedYears)
-      
-      if (filteredData.length === 0) {
-        toast.error('Tidak ada data untuk tahun yang dipilih')
+      if (data.length === 0) {
+        toast.error('Tidak ada data untuk di-export')
         return false
       }
 
-      // Panggil fungsi export PDF dari exportUtils
-      const success = exportPDF(filteredData, filename, selectedYears)
+      // Panggil fungsi export PDF - selectedYears sudah dihandle di dalam exportUtils
+      const success = exportPDF(data, filename, selectedYears)
       
       if (success) {
-        toast.success(`File PDF berhasil di-export (${filteredData.length} data)`)
+        const yearLabel = selectedYears.length > 0 
+          ? ` (${selectedYears.sort((a, b) => a - b).join(', ')})`
+          : ''
+        toast.success(`File PDF berhasil di-export${yearLabel}`)
       }
       
       return success
@@ -40,24 +40,49 @@ export const useExport = () => {
       toast.error('Gagal export PDF: ' + error.message)
       return false
     }
-  }, [filterDataByYears])
+  }, [])
 
-  // Export data ke Excel (CSV)
-  const exportToExcel = useCallback((data, selectedYears, filename) => {
+  // Export sewa ke PDF
+  const exportSewatoPDF = useCallback((data, filename, selectedYears = []) => {
     try {
-      // Filter data dulu
-      const filteredData = filterDataByYears(data, selectedYears)
-      
-      if (filteredData.length === 0) {
-        toast.error('Tidak ada data untuk tahun yang dipilih')
+      if (data.length === 0) {
+        toast.error('Tidak ada data untuk di-export')
         return false
       }
 
-      // Panggil fungsi export CSV dari exportUtils
-      const success = exportToCSV(filteredData, filename, selectedYears)
+      const success = exportSewaToPDF(data, filename, selectedYears)
       
       if (success) {
-        toast.success(`File Excel berhasil di-export (${filteredData.length} data)`)
+        const yearLabel = selectedYears.length > 0 
+          ? ` (${selectedYears.sort((a, b) => a - b).join(', ')})`
+          : ''
+        toast.success(`File PDF berhasil di-export${yearLabel}`)
+      }
+      
+      return success
+    } catch (error) {
+      console.error('Error exporting PDF:', error)
+      toast.error('Gagal export PDF: ' + error.message)
+      return false
+    }
+  }, [])
+
+  // Export data ke Excel (CSV)
+  const exportToExcel = useCallback((data, filename, selectedYears = []) => {
+    try {
+      if (data.length === 0) {
+        toast.error('Tidak ada data untuk di-export')
+        return false
+      }
+
+      // Panggil fungsi export CSV - selectedYears sudah dihandle di dalam exportUtils
+      const success = exportToCSV(data, filename, selectedYears)
+      
+      if (success) {
+        const yearLabel = selectedYears.length > 0 
+          ? ` (${selectedYears.sort((a, b) => a - b).join(', ')})`
+          : ''
+        toast.success(`File Excel berhasil di-export${yearLabel}`)
       }
       
       return success
@@ -66,7 +91,7 @@ export const useExport = () => {
       toast.error('Gagal export Excel: ' + error.message)
       return false
     }
-  }, [filterDataByYears])
+  }, [])
 
   // Get unique years from data
   const getAvailableYears = useCallback((data) => {
@@ -79,6 +104,7 @@ export const useExport = () => {
 
   return {
     exportToPDF,
+    exportSewatoPDF,
     exportToExcel,
     getAvailableYears,
     filterDataByYears
