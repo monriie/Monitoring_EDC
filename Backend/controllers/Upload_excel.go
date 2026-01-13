@@ -203,7 +203,7 @@ func UploadBankExcel(c *fiber.Ctx) error {
             if err := database.DB.Model(&mesin).Updates(map[string]interface{}{
                 "nama_nasabah":   namaNasabah,
                 "tanggal_pasang": tanggalPasang,
-                "status_data":    "terdata_bank",
+                "status_data":    "bank",
             }).Error; err != nil {
 
                 log.Printf(
@@ -230,7 +230,7 @@ func UploadBankExcel(c *fiber.Ctx) error {
                 TerminalID:    terminalID,
                 NamaNasabah:  namaNasabah,
                 TanggalPasang: tanggalPasang,
-                StatusData:   "terdata_di_bank",
+                StatusData:   "bank",
             }
 
             if err := database.DB.Create(&newMesin).Error; err != nil {
