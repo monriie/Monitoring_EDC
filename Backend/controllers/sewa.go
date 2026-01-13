@@ -18,22 +18,18 @@ func GetSewaSummary(c *fiber.Ctx) error {
 	totalBiaya := 0
 
 	for _, s := range sewas {
-		biaya := s.BiayaBulanan
-		if biaya == 0 {
-			biaya = 1500000
-		}
+		biaya := normalizeBiayaBulanan(s.BiayaBulanan)
 
-		if s.StatusSewa == "aktif" {
+		switch s.StatusSewa {
+		case "aktif":
 			sewaAktif++
 			totalBiaya += biaya
-		} else if s.StatusSewa == "berakhir" {
+		case "berakhir":
 			sewaBerakhir++
 		}
 
-		if s.Mesin != nil {
-			if s.Mesin.StatusMesin == "perbaikan" || s.Mesin.StatusMesin == "rusak" {
-				bermasalah++
-			}
+		if s.Mesin != nil && isMesinBermasalah(s.Mesin.StatusMesin) {
+			bermasalah++
 		}
 	}
 
@@ -69,13 +65,15 @@ func GetSewaList(c *fiber.Ctx) error {
 		}
 
 		result = append(result, fiber.Map{
-			"terminal_id":     s.Mesin.TerminalID,
-			"nama_nasabah":    s.Mesin.NamaNasabah,
-			"tanggal_pasang":  s.Mesin.TanggalPasang,
-			"status_mesin":    s.Mesin.StatusMesin,
-			"letak_mesin":     s.Mesin.LetakMesin,
-			"status_sewa":     s.StatusSewa,
-			"biaya_bulanan":   biaya,
+			"terminal_id":    s.Mesin.TerminalID,
+			"nama_nasabah":   s.Mesin.NamaNasabah,
+			"tanggal_pasang": s.Mesin.TanggalPasang,
+
+			"status_mesin": mapStatusMesinToResponse(s.Mesin.StatusMesin),
+			"letak_mesin":  s.Mesin.LetakMesin,
+			"status_sewa":  mapStatusSewaToResponse(s.StatusSewa),
+
+			"biaya_bulanan": normalizeBiayaBulanan(s.BiayaBulanan),
 		})
 	}
 
@@ -114,16 +112,53 @@ func SearchSewa(c *fiber.Ctx) error {
 		}
 
 		result = append(result, fiber.Map{
-			"terminal_id":     s.Mesin.TerminalID,
-			"nama_nasabah":    s.Mesin.NamaNasabah,
-			"tanggal_pasang":  s.Mesin.TanggalPasang,
-			"status_mesin":    s.Mesin.StatusMesin,
-			"letak_mesin":     s.Mesin.LetakMesin,
-			"status_sewa":     s.StatusSewa,
-			"biaya_bulanan":   biaya,
+			"terminal_id":    s.Mesin.TerminalID,
+			"nama_nasabah":   s.Mesin.NamaNasabah,
+			"tanggal_pasang": s.Mesin.TanggalPasang,
+
+			"status_mesin": mapStatusMesinToResponse(s.Mesin.StatusMesin),
+			"letak_mesin":  s.Mesin.LetakMesin,
+			"status_sewa":  mapStatusSewaToResponse(s.StatusSewa),
+
+			"biaya_bulanan": normalizeBiayaBulanan(s.BiayaBulanan),
 		})
+
 	}
 
 	return c.JSON(result)
 }
 
+func mapStatusSewaToResponse(status string) string {
+	mapper := map[string]string{
+		"aktif":    "AKTIF",
+		"berakhir": "BERAKHIR",
+	}
+	if v, ok := mapper[status]; ok {
+		return v
+	}
+	return "BERAKHIR"
+}
+
+func mapStatusMesinToResponse(status string) string {
+	mapper := map[string]string{
+		"aktif":        "AKTIF",
+		"perbaikan":    "PERBAIKAN",
+		"rusak":        "RUSAK",
+		"tidak_aktif":  "NONAKTIF",
+	}
+	if v, ok := mapper[status]; ok {
+		return v
+	}
+	return "AKTIF"
+}
+
+func isMesinBermasalah(status string) bool {
+	return status == "perbaikan" || status == "rusak"
+}
+
+func normalizeBiayaBulanan(biaya int) int {
+	if biaya <= 0 {
+		return 1500000
+	}
+	return biaya
+}
