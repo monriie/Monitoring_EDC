@@ -8,20 +8,22 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Card, CardContent } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useRekap } from '@/hooks/useRekap'
+import { useMachines } from '@/hooks/useMachine'
 import toast from 'react-hot-toast'
 
 const AddModal = () => {
   const [isOpen, setIsOpen] = useState(false)
   const { uploadVendorExcel, uploadBankExcel, loading } = useRekap()
+  const { addMachine } = useMachines() // Destructure addMachine
   const [activeTab, setActiveTab] = useState('satuan')
-  const [uploadSource, setUploadSource] = useState('vendor') // 'vendor' or 'bank'
+  const [uploadSource, setUploadSource] = useState('vendor')
+  const [isSubmitting, setIsSubmitting] = useState(false) // Loading state
   
   const [excelFiles, setExcelFiles] = useState({
     vendor: null,
     bank: null,
   })
   
-
   const [newMachine, setNewMachine] = useState({
     terminal_id: '',
     mid: '',
@@ -67,7 +69,7 @@ const AddModal = () => {
       status_letak: 'NASABAH',
       tanggal_pasang: new Date().toISOString().split('T')[0],
       estimasi_selesai: null,
-      biaya_sewa: 1500000,
+      biaya_sewa: 150000,
       sumber_data: ['VENDOR']
     })
   }
@@ -79,17 +81,51 @@ const AddModal = () => {
     })
   }
 
-  const handleAddSatuan = () => {
+  // ✅ FIX: Properly call API
+  const handleAddSatuan = async () => {
     if (!newMachine.terminal_id || !newMachine.mid) {
-      alert('Terminal ID dan MID wajib diisi!')
+      toast.error('Terminal ID dan MID wajib diisi!')
       return
     }
 
-    dispatchEvent(new CustomEvent('machineAdded', {
-      detail: newMachine
-    }))
-    
-    handleClose()
+    setIsSubmitting(true)
+
+    try {
+      // Prepare data sesuai format backend
+      const payload = {
+        terminal_id: newMachine.terminal_id,
+        mid: newMachine.mid,
+        nama_nasabah: newMachine.nama_nasabah || null,
+        kota: newMachine.kota,
+        cabang: newMachine.cabang,
+        tipe_edc: newMachine.tipe_edc,
+        status_data: newMachine.status_data,
+        status_mesin: newMachine.status_mesin,
+        status_sewa: newMachine.status_sewa,
+        status_letak: newMachine.status_letak,
+        tanggal_pasang: newMachine.tanggal_pasang ? new Date(newMachine.tanggal_pasang).toISOString() : null,
+        biaya_sewa: newMachine.biaya_sewa
+      }
+
+      console.log('Sending payload:', payload) // Debug log
+
+      const result = await addMachine(payload)
+
+      if (result.success) {
+        toast.success('Mesin berhasil ditambahkan!')
+        handleClose()
+        
+        // Trigger refresh data
+        dispatchEvent(new CustomEvent('reloadMachineList'))
+      } else {
+        toast.error(result.error || 'Gagal menambahkan mesin')
+      }
+    } catch (error) {
+      console.error('Error adding machine:', error)
+      toast.error('Terjadi kesalahan saat menambahkan mesin')
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   const handleFileChange = async (e, source) => {
@@ -98,7 +134,7 @@ const AddModal = () => {
 
     const validTypes = ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/vnd.ms-excel']
     if (!validTypes.includes(file.type)) {
-      alert('File harus berformat Excel (.xlsx atau .xls)')
+      toast.error('File harus berformat Excel (.xlsx atau .xls)')
       return
     }
 
@@ -106,18 +142,16 @@ const AddModal = () => {
       ...prev,
       [source]: file
     }))
-    reader.readAsArrayBuffer(file)
   }
 
   const handleAddMulti = async () => {
     const currentFile = excelFiles[uploadSource]
 
     if (!currentFile) {
-      alert('Pilih file Excel terlebih dahulu!')
+      toast.error('Pilih file Excel terlebih dahulu!')
       return
     }
 
-    // Validasi ukuran file (5MB)
     const maxSize = 5 * 1024 * 1024
     if (currentFile.size > maxSize) {
       toast.error('Ukuran file maksimal 5MB')
@@ -134,13 +168,14 @@ const AddModal = () => {
       }
 
       if (result.success) {
+        toast.success('Data berhasil diupload!')
         handleClose()
+        dispatchEvent(new CustomEvent('reloadMachineList'))
       }
     } catch (error) {
       console.error('Upload error:', error)
+      toast.error('Gagal mengupload data')
     }
-    
-    handleClose()
   }
 
   const removeFile = (source) => {
@@ -174,14 +209,14 @@ const AddModal = () => {
                 ? 'border-b-2 border-[#00AEEF] text-[#00AEEF]'
                 : 'text-gray-500 hover:text-gray-700'
             }`}>
-            Rekap Satuan
+              Rekap Satuan
             </TabsTrigger>
             <TabsTrigger value="multi" className={`px-4 py-2 font-medium transition-colors ${
               activeTab === 'multi'
                 ? 'border-b-2 border-[#00AEEF] text-[#00AEEF]'
                 : 'text-gray-500 hover:text-gray-700'
             }`}>
-            Multi Rekap (Excel)
+              Multi Rekap (Excel)
             </TabsTrigger>
           </TabsList>
 
@@ -189,7 +224,7 @@ const AddModal = () => {
             <Alert className="bg-blue-50 border-blue-200">
               <AlertCircle className="h-4 w-4 text-blue-800" />
               <AlertDescription className="text-sm text-blue-800">
-                <strong>Info Defaul</strong>
+                <strong>Info Default</strong>
                 <div className="mt-1 space-y-1">
                   <div>Status Data: VENDOR</div>
                   <div>Status Mesin: AKTIF</div>
@@ -392,22 +427,44 @@ const AddModal = () => {
         </Tabs>
 
         <DialogFooter>
-          <Button variant="outline" onClick={handleClose}>
+          <Button variant="outline" onClick={handleClose} disabled={isSubmitting}>
             Batal
           </Button>
           {activeTab === 'satuan' ? (
-            <Button onClick={handleAddSatuan} className="bg-[#00AEEF]">
-              <Plus className="h-4 w-4 mr-2" />
-              Tambah Mesin
+            <Button 
+              onClick={handleAddSatuan} 
+              className="bg-[#00AEEF]"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? (
+                <>
+                  <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full mr-2" />
+                  Menyimpan...
+                </>
+              ) : (
+                <>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Tambah Mesin
+                </>
+              )}
             </Button>
           ) : (
             <Button 
               onClick={handleAddMulti} 
               className="bg-[#00AEEF] hover:bg-[#0095d1]"
-              disabled={!currentFile}
+              disabled={!currentFile || loading}
             >
-              <Upload className="h-4 w-4 mr-2" />
-              Upload Data {uploadSource === 'vendor' ? 'Vendor' : 'Bank'}
+              {loading ? (
+                <>
+                  <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full mr-2" />
+                  Mengupload...
+                </>
+              ) : (
+                <>
+                  <Upload className="h-4 w-4 mr-2" />
+                  Upload Data {uploadSource === 'vendor' ? 'Vendor' : 'Bank'}
+                </>
+              )}
             </Button>
           )}
         </DialogFooter>

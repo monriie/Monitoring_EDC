@@ -287,15 +287,15 @@ const EditModal = () => {
               <Label>Biaya Sewa / Bulan</Label>
               <Input
                 type="number"
-                value={editingMachine.biaya_sewa || 0}
+                value={editingMachine.biaya_sewa}
                 onChange={(e) =>
                   setEditingMachine({
                     ...editingMachine,
-                    biaya_sewa: parseInt(e.target.value) || 0
+                    biaya_sewa: parseInt(e.target.value)
                   })
                 }
                 className="mt-2"
-                placeholder="0"
+                placeholder=""
               />
             </div>
           </div>
