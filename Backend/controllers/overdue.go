@@ -39,7 +39,6 @@ func GetOverdueSummary(c *fiber.Ctx) error {
 		totalPerbaikan++
 
 		p := m.Perbaikan[0]
-
 		if p.EstimasiPerbaikan == nil {
 			continue
 		}
@@ -56,10 +55,27 @@ func GetOverdueSummary(c *fiber.Ctx) error {
 		}
 	}
 
+	// ✅ FORMAT BARU (UNTUK FRONTEND)
+	statusOverdue := []fiber.Map{
+		{
+			"status": "warning",
+			"total":  warning,
+		},
+		{
+			"status": "overdue",
+			"total":  overdue,
+		},
+	}
+
 	return utils.Success(c, fiber.Map{
-		"total_perbaikan":   totalPerbaikan,
-		"warning":           warning,
-		"overdue":           overdue,
+		// ⬅️ data lama (jaga kompatibilitas)
+		"total_perbaikan": totalPerbaikan,
+		"warning":         warning,
+		"overdue":         overdue,
+
+		// ⬅️ data baru (dipakai React .find())
+		"statusOverdue": statusOverdue,
+
 		"estimasi_kerugian": totalKerugian,
 	})
 }
