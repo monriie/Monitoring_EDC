@@ -37,12 +37,12 @@ export const useDashboard = () => {
       ])
 
       setStats({
-        totalMesin: totalMesinRes?.total_mesin ?? 0,
-        terdataBank: terdataBankRes?.mesin_terdata_bank ?? 0,
-        statusMesin: statusMesinRes ?? [],
-        statusOverdue: statusOverdueRes ?? [],
+        totalMesin: totalMesinRes?.data?.total_mesin ?? 0,
+        terdataBank: terdataBankRes?.data?.mesin_terdata_bank ?? 0,
+        statusMesin: statusMesinRes?.data ?? [],
+        statusOverdue: statusOverdueRes?.data?.statusOverdue ?? [],
       })
-
+      
       setMesinBaru(mesinBaruRes ?? [])
       setOverdueList(monitoringOverdueRes?.monitoring_overdue ?? [])
 
