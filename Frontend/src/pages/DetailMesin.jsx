@@ -79,9 +79,11 @@ const DetailMesin = () => {
       // console.log('Sending to backend:', backendData)
 
       const result = await updateMachine(backendData)
-      if (result.success) {
-        await fetchDetail()
-      }
+    if (result.success) {
+      await fetchDetail()
+      dispatchEvent(new Event('rekapUpdated'))
+      toast.success('Data mesin berhasil diperbarui')
+    }
     }
 
     addEventListener('machineUpdated', handleMachineUpdated)

@@ -50,7 +50,7 @@ const Overdue = () => {
     addEventListener('rekapUpdated', handleRekapUpdated)
     
     return () => removeEventListener('rekapUpdated', handleRekapUpdated)
-  }, [fetchList])
+  }, [fetchList], [fetchSummary])
 
   // Debounced search dengan useEffect
   useEffect(() => {

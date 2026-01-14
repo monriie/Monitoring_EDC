@@ -20,7 +20,7 @@ import EmptyState from '@/components/common/EmptyState'
 import ExportYearFilterModal from '@/components/modal/ExportYearFilterModal'
 
 const Sewa = () => {
-  const { summary, sewaList, loading, error, fetchList, searchSewa } = useSewa()
+  const { summary, sewaList, loading, error, fetchList, fetchSummary, searchSewa } = useSewa()
   const { exportToExcel, exportSewatoPDF, getAvailableYears } = useExport()
   const [searchTerm, setSearchTerm] = useState('')
 
@@ -53,12 +53,13 @@ const Sewa = () => {
     const handleRekapUpdated = () => {
       console.log('Rekap updated, refreshing sewa data...')
       fetchList()
+      fetchSummary()
     }
 
     addEventListener('rekapUpdated', handleRekapUpdated)
     
     return () => removeEventListener('rekapUpdated', handleRekapUpdated)
-  }, [fetchList])
+  }, [fetchList], [fetchSummary])
 
   // Debounced search dengan useEffect
   useEffect(() => {
