@@ -4,7 +4,7 @@ import "time"
 
 type MesinEDC struct {
 	ID           uint      `gorm:"primaryKey"`
-	TerminalID   string    `gorm:"unique;not null"`
+	TerminalID   string    `gorm:"unique;not null"json:"terminal_id"`
 	MID          string
 
 	NamaNasabah  string
