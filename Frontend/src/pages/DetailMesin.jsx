@@ -15,8 +15,7 @@ import { Button } from '@/components/ui/button'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import Breadcrumb from '@/components/common/Breadcrumb'
 import StatusBadge from '@/components/common/StatusBadge'
-import { calculateDaysOverdue } from '@/utils/dateUtils'
-import { calculateLoss, normalizeStatusData } from '@/utils/helper'
+import { normalizeStatusData } from '@/utils/helper'
 import { formatCurrency } from '@/utils/formatter'
 import { useMesinDetail } from '@/hooks/useMesinDetail'
 import { useParams } from 'react-router'
@@ -122,8 +121,8 @@ const DetailMesin = () => {
   const biayaBulanan = machine.informasi_sewa?.biaya_bulanan || machine.biaya_sewa || 0
   const estimasiSelesai = machine.informasi_sewa?.estimasi_selesai || machine.estimasi_selesai || null
 
-  const daysOverdue = calculateDaysOverdue(estimasiSelesai)
-  const loss = calculateLoss({ biaya_sewa: biayaBulanan }, daysOverdue)
+  const daysOverdue = machine.days_overdue || 0
+  const loss = machine.biaya_sewa || 0
 
   const InfoItem = ({ label, value, icon: Icon }) => (
     <div className="flex items-start gap-3 group">
@@ -239,10 +238,10 @@ const DetailMesin = () => {
                   <Alert className="bg-linear-to-br from-red-50 to-red-100 rounded-lg p-4 border border-red-200">
                     <AlertDescription>
                       <p className="text-base text-gray-600 mb-1">
-                        Overdue: <span className="font-bold text-base text-[#ed1c24] mb-1">{daysOverdue} hari</span>
+                        Overdue: {' '}<span className="font-bold text-base text-[#ed1c24] mb-1">{daysOverdue} hari</span>
                       </p>
                       <p className="text-base text-gray-600 mb-1">
-                        Estimasi Kerugian{' '}
+                        Estimasi Kerugian
                         <span className="font-bold text-base md:text-xl text-[#ed1c24] flex flex-col">
                           {formatCurrency(loss)}
                         </span>

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { rekapAPI, sewaAPI, excelAPI } from '@/service/api'
+import { normalizeMachinesList } from '@/utils/statusNormalizer'
 import toast from 'react-hot-toast'
 
 export const useRekap = () => {
@@ -140,14 +141,12 @@ export const useSewa = () => {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
 
-  // Fetch sewa summary
   const fetchSummary = useCallback(async () => {
     setLoading(true)
     setError(null)
 
     try {
       const response = await sewaAPI.getSummary()
-      // Ensure valid structure
       setSummary({
         sewa_aktif: response?.sewa_aktif || 0,
         sewa_berakhir: response?.sewa_berakhir || 0,
@@ -165,27 +164,28 @@ export const useSewa = () => {
     }
   }, [])
 
-  // Fetch sewa list
   const fetchList = useCallback(async () => {
     setLoading(true)
     setError(null)
 
     try {
       const response = await sewaAPI.getList()
-      setSewaList(Array.isArray(response) ? response : [])
-      return { success: true, data: response }
+      
+      // Normalisasi status dari backend
+      const normalized = normalizeMachinesList(Array.isArray(response) ? response : [])
+      setSewaList(normalized)
+      
+      return { success: true, data: normalized }
     } catch (err) {
       const errorMessage = err.message || 'Gagal memuat list sewa'
       setError(errorMessage)
       console.error('Sewa list error:', errorMessage)
-      setSewaList([])
       return { success: false, error: errorMessage }
     } finally {
       setLoading(false)
     }
   }, [])
 
-  // Search sewa
   const searchSewa = useCallback(async (query) => {
     if (!query) {
       await fetchList()
@@ -197,8 +197,12 @@ export const useSewa = () => {
 
     try {
       const response = await sewaAPI.search(query)
-      setSewaList(Array.isArray(response) ? response : [])
-      return { success: true, data: response }
+      
+      // Normalisasi status dari backend
+      const normalized = normalizeMachinesList(Array.isArray(response) ? response : [])
+      setSewaList(normalized)
+      
+      return { success: true, data: normalized }
     } catch (err) {
       const errorMessage = err.message || 'Gagal mencari sewa'
       setError(errorMessage)
@@ -209,7 +213,6 @@ export const useSewa = () => {
     }
   }, [fetchList])
 
-  // Fetch all data on mount
   useEffect(() => {
     fetchSummary()
     fetchList()

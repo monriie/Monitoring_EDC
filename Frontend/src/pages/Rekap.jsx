@@ -172,7 +172,7 @@ const Rekap = () => {
                   placeholder="Terminal ID / Merchant (min. 3 karakter)"
                   className="pl-9"
                   value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)} // ✅ Cukup update state
+                  onChange={(e) => setSearchTerm(e.target.value)}
                 />
                 {loading && searchTerm.length >= 3 && (
                   <Loading/>
