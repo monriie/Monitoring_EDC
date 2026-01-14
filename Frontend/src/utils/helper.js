@@ -54,16 +54,3 @@ export const getOverdueInfo = (machine, today = new Date()) => {
     daysLate
   }
 }
-
-export const normalizeStatusData = (status) => {
-  if (!status) return 'VENDOR_ONLY'
-  
-  const normalized = status.toUpperCase()
-  
-  // Handle semua kemungkinan format dari backend
-  if (normalized === 'BANK' || normalized === 'TERDATA_BANK') {
-    return 'TERDATA_BANK'
-  }
-  
-  return 'VENDOR_ONLY'
-}
