@@ -2,7 +2,6 @@ package controllers
 
 import (
 	"errors"
-	"log"
 	"strings"
 
 	"gorm.io/gorm"
@@ -10,6 +9,7 @@ import (
 	"backend/database"
 	"backend/models"
 	"backend/models/dto"
+    "backend/utils"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/xuri/excelize/v2"
@@ -47,69 +47,76 @@ func UploadVendorExcel(c *fiber.Ctx) error {
 
 	var inserted, updated, skipped int
 
-for i := 1; i < len(rows); i++ {
+	for i := 1; i < len(rows); i++ {
 
-	tid := dto.GetRawCell(xl, sheet, i, 1)     // TID
-	mid := dto.GetRawCell(xl, sheet, i, 2)     // MID
-	kota := dto.GetRawCell(xl, sheet, i, 6)    // KOTA
-	cabang := dto.GetRawCell(xl, sheet, i, 7)  // CABANG
-	tipeEDC := dto.GetRawCell(xl, sheet, i, 8) // TYPE EDC
+		tid := dto.GetRawCell(xl, sheet, i, 1) // TID
+		mid := dto.GetRawCell(xl, sheet, i, 2) // MID
+		kota := dto.GetRawCell(xl, sheet, i, 6)
+		cabang := dto.GetRawCell(xl, sheet, i, 7)
+		tipeEDC := dto.GetRawCell(xl, sheet, i, 8)
 
-	if tid == "" || mid == "" {
+		if tid == "" {
+			skipped++
+			continue
+		}
+
+		var mesin models.MesinEDC
+		err := database.DB.Where("terminal_id = ?", tid).First(&mesin).Error
+
+		// =======================
+		// DATA SUDAH ADA → MERGE
+		// =======================
+		if err == nil {
+
+			vendorData := models.MesinEDC{
+				MID:      mid,
+				Kota:     kota,
+				Cabang:   cabang,
+				TipeEDC:  tipeEDC,
+			}
+
+			updates := utils.MergeVendorData(&mesin, vendorData)
+
+			if len(updates) == 0 {
+				skipped++
+				continue
+			}
+
+			if err := database.DB.Model(&mesin).Updates(updates).Error; err != nil {
+				skipped++
+				continue
+			}
+
+			updated++
+			continue
+		}
+
+		// =======================
+		// RECORD BARU → INSERT
+		// =======================
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+
+			newMesin := models.MesinEDC{
+				TerminalID: tid,
+				MID:        mid,
+				Kota:       kota,
+				Cabang:     cabang,
+				TipeEDC:    tipeEDC,
+				StatusData: "vendor_only",
+			}
+
+			if err := database.DB.Create(&newMesin).Error; err != nil {
+				skipped++
+				continue
+			}
+
+			inserted++
+			continue
+		}
+
 		skipped++
-		continue
 	}
 
-	var mesin models.MesinEDC
-	err := database.DB.Where("terminal_id = ?", tid).First(&mesin).Error
-
-	// =============================
-	// UPDATE
-	// =============================
-	if err == nil {
-
-		if err := database.DB.Model(&mesin).Updates(map[string]interface{}{
-			"mid":         mid,
-			"kota":        kota,
-			"cabang":      cabang,
-			"tipe_edc":    tipeEDC,
-		}).Error; err != nil {
-			skipped++
-			continue
-		}
-
-		updated++
-		continue
-	}
-
-	// =============================
-	// INSERT
-	// =============================
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-
-		newMesin := models.MesinEDC{
-			TerminalID:    tid,
-			MID:           mid,
-			Kota:          kota,
-			Cabang:        cabang,
-			TipeEDC:       tipeEDC,
-			StatusData:    "vendor_only",
-			TanggalPasang: nil,
-		}
-
-		if err := database.DB.Create(&newMesin).Error; err != nil {
-			log.Println("INSERT ERROR:", err)
-			skipped++
-			continue
-		}
-
-		inserted++
-		continue
-	}
-
-	log.Println("DB ERROR:", err)
-	skipped++
-}
 	return c.JSON(fiber.Map{
 		"message":  "Upload vendor selesai",
 		"inserted": inserted,
@@ -122,151 +129,112 @@ for i := 1; i < len(rows); i++ {
 // UPLOAD BANK EXCEL
 // =====================
 func UploadBankExcel(c *fiber.Ctx) error {
-    file, err := c.FormFile("file")
-    if err != nil {
-        return c.Status(400).JSON(fiber.Map{"message": "File tidak ditemukan"})
-    }
+	file, err := c.FormFile("file")
+	if err != nil {
+		return c.Status(400).JSON(fiber.Map{"message": "File tidak ditemukan"})
+	}
 
-    if !isExcelFile(file.Filename) {
-        return c.Status(400).JSON(fiber.Map{"message": "File harus berformat Excel"})
-    }
+	if !isExcelFile(file.Filename) {
+		return c.Status(400).JSON(fiber.Map{"message": "File harus berformat Excel"})
+	}
 
-    src, err := file.Open()
-    if err != nil {
-        return c.Status(400).JSON(fiber.Map{"message": "Gagal membuka file"})
-    }
-    defer src.Close()
+	src, err := file.Open()
+	if err != nil {
+		return c.Status(400).JSON(fiber.Map{"message": "Gagal membuka file"})
+	}
+	defer src.Close()
 
-    xl, err := excelize.OpenReader(src)
-    if err != nil {
-        return c.Status(400).JSON(fiber.Map{"message": "Gagal membaca file excel"})
-    }
+	xl, err := excelize.OpenReader(src)
+	if err != nil {
+		return c.Status(400).JSON(fiber.Map{"message": "Gagal membaca file excel"})
+	}
 
-    sheet := xl.GetSheetName(0)
-    rows, err := xl.GetRows(sheet)
-    if err != nil {
-        return c.Status(400).JSON(fiber.Map{"message": "Gagal membaca sheet"})
-    }
+	sheet := xl.GetSheetName(0)
+	rows, err := xl.GetRows(sheet)
+	if err != nil {
+		return c.Status(400).JSON(fiber.Map{"message": "Gagal membaca sheet"})
+	}
 
-    var inserted, updated, skipped int
+	var inserted, updated, skipped int
 
-    // mulai dari row ke-2 (skip header)
-    for i := 1; i < len(rows); i++ {
+	for i := 1; i < len(rows); i++ {
 
-        terminalID := dto.GetRawCell(xl, sheet, i, 1)   // TERMINAL_ID_NR
-        namaNasabah := dto.GetRawCell(xl, sheet, i, 5) // ENTITY_NAME
-        rawDate := dto.GetRawCell(xl, sheet, i, 6)     // ACTUAL_START_DATE
+		terminalID := dto.GetRawCell(xl, sheet, i, 1)
+		namaNasabah := dto.GetRawCell(xl, sheet, i, 5)
 
-        // 🔍 LOG DATA AWAL
-        log.Printf(
-            "[ROW %d] terminalID='%s' namaNasabah='%s' rawDate='%s'",
-            i+1, terminalID, namaNasabah, rawDate,
-        )
+		if terminalID == "" || namaNasabah == "" {
+			skipped++
+			continue
+		}
 
-        // =============================
-        // VALIDASI STRING WAJIB
-        // =============================
-        if terminalID == "" || namaNasabah == "" || rawDate == "" {
-            log.Printf(
-                "[SKIP][VALIDASI] row=%d terminalID='%s' namaNasabah='%s' rawDate='%s'",
-                i+1, terminalID, namaNasabah, rawDate,
-            )
-            skipped++
-            continue
-        }
+		tanggalPasang, err := dto.GetExcelDate(xl, sheet, i, 6)
+		if err != nil {
+			skipped++
+			continue
+		}
 
-        // =============================
-        // PARSE TANGGAL (pakai versi aman)
-        // =============================
-        tanggalPasang, err := dto.GetExcelDate(xl, sheet, i, 6)
-        if err != nil {
-            log.Printf(
-                "[SKIP][DATE] row=%d terminalID='%s' rawDate='%s' err=%v",
-                i+1, terminalID, rawDate, err,
-            )
-            skipped++
-            continue
-        }
+		var mesin models.MesinEDC
+		err = database.DB.
+			Where("terminal_id = ?", terminalID).
+			First(&mesin).Error
 
-        var mesin models.MesinEDC
-        err = database.DB.
-            Where("terminal_id = ?", terminalID).
-            First(&mesin).Error
+		// ======================
+		// DATA SUDAH ADA → MERGE
+		// ======================
+		if err == nil {
 
-        // =============================
-        // 🔥 DATA SUDAH ADA → UPDATE
-        // =============================
-        if err == nil {
+			bankData := models.MesinEDC{
+				NamaNasabah:  namaNasabah,
+				TanggalPasang: tanggalPasang,
+			}
 
-            log.Printf("[UPDATE] row=%d terminalID='%s'", i+1, terminalID)
+			updates := utils.MergeBankData(&mesin, bankData)
 
-            if err := database.DB.Model(&mesin).Updates(map[string]interface{}{
-                "nama_nasabah":   namaNasabah,
-                "tanggal_pasang": tanggalPasang,
-                "status_data":    "bank",
-            }).Error; err != nil {
+			if len(updates) == 0 {
+				skipped++
+				continue
+			}
 
-                log.Printf(
-                    "[SKIP][UPDATE ERROR] row=%d terminalID='%s' err=%v",
-                    i+1, terminalID, err,
-                )
+			if err := database.DB.Model(&mesin).Updates(updates).Error; err != nil {
+				skipped++
+				continue
+			}
 
-                skipped++
-                continue
-            }
+			updated++
+			continue
+		}
 
-            updated++
-            continue
-        }
+		// ======================
+		// RECORD BARU → INSERT
+		// ======================
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 
-        // =============================
-        // 🔥 RECORD NOT FOUND → INSERT
-        // =============================
-        if errors.Is(err, gorm.ErrRecordNotFound) {
+			newMesin := models.MesinEDC{
+				TerminalID:    terminalID,
+				NamaNasabah:  namaNasabah,
+				TanggalPasang: tanggalPasang,
+				StatusData:   "bank",
+			}
 
-            log.Printf("[INSERT] row=%d terminalID='%s'", i+1, terminalID)
+			if err := database.DB.Create(&newMesin).Error; err != nil {
+				skipped++
+				continue
+			}
 
-            newMesin := models.MesinEDC{
-                TerminalID:    terminalID,
-                NamaNasabah:  namaNasabah,
-                TanggalPasang: tanggalPasang,
-                StatusData:   "bank",
-            }
+			inserted++
+			continue
+		}
 
-            if err := database.DB.Create(&newMesin).Error; err != nil {
+		skipped++
+	}
 
-                log.Printf(
-                    "[SKIP][INSERT ERROR] row=%d terminalID='%s' err=%v",
-                    i+1, terminalID, err,
-                )
-
-                skipped++
-                continue
-            }
-
-            inserted++
-            continue
-        }
-
-        // =============================
-        // ERROR DB LAIN
-        // =============================
-        log.Printf(
-            "[SKIP][DB ERROR] row=%d terminalID='%s' err=%v",
-            i+1, terminalID, err,
-        )
-
-        skipped++
-    }
-
-    return c.JSON(fiber.Map{
-        "message":  "Upload bank selesai",
-        "inserted": inserted,
-        "updated":  updated,
-        "skipped":  skipped,
-    })
+	return c.JSON(fiber.Map{
+		"message":  "Upload bank selesai",
+		"inserted": inserted,
+		"updated":  updated,
+		"skipped":  skipped,
+	})
 }
-
 
 // =====================
 // HELPERS
