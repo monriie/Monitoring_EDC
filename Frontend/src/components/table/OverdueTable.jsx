@@ -8,16 +8,9 @@ import { calculateDaysOverdue } from '@/utils/dateUtils'
 import { calculateLoss } from '@/utils/helper'
 import { formatCurrency } from '@/utils/formatter'
 import StatusBadge from '../common/StatusBadge'
+import { isNewMachine } from '@/utils/dateUtils'
 
 const OverdueTable = ({ machines}) => {
-  const isNewMachine = (tanggalPasang) => {
-    if (!tanggalPasang) return false
-    const today = new Date()
-    const pasang = new Date(tanggalPasang)
-    const MS_PER_DAY = 1000 * 60 * 60 * 24
-    const diffDays = Math.ceil((today - pasang) / MS_PER_DAY)
-    return diffDays <= 30
-  }
 
   return (
     <Table>

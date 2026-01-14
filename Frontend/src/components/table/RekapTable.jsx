@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import StatusBadge from '@/components/common/StatusBadge'
 import { Link } from 'react-router'
+import { isNewMachine } from '@/utils/dateUtils'
 
 const RekapTable = ({ machines}) => {
   if (machines.length === 0) {
@@ -14,16 +15,6 @@ const RekapTable = ({ machines}) => {
         <p className="font-medium">Tidak ada data yang sesuai dengan filter</p>
       </div>
     )
-  }
-
-  // Check if machine is new (within 30 days)
-  const isNewMachine = (tanggalPasang) => {
-    if (!tanggalPasang) return false
-    const today = new Date()
-    const pasang = new Date(tanggalPasang)
-    const MS_PER_DAY = 1000 * 60 * 60 * 24
-    const diffDays = Math.ceil((today - pasang) / MS_PER_DAY)
-    return diffDays <= 30
   }
 
   return (

@@ -76,7 +76,7 @@ export const exportToCSV = (data, filename, selectedYears = []) => {
       )
     ].join('\n')
 
-    // Add BOM for Excel UTF-8 support
+    // Add BOM for Excel
     const BOM = '\uFEFF'
     const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' })
 

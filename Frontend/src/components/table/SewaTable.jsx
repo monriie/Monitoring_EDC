@@ -6,15 +6,9 @@ import { Badge } from '@/components/ui/badge'
 import StatusBadge from '@/components/common/StatusBadge'
 import { formatCurrency } from '@/utils/formatter'
 import { Link } from 'react-router'
+import { isNewMachine } from '@/utils/dateUtils'
 
 const SewaTable = ({ machines }) => {
-  const isNewMachine = (tanggalPasang) => {
-    if (!tanggalPasang) return false
-    const today = new Date()
-    const pasang = new Date(tanggalPasang)
-    const diffDays = Math.ceil((today - pasang) / (1000 * 60 * 60 * 24))
-    return diffDays <= 30
-  }
 
   return (
     <Table className="w-full overflow-x-scroll lg:overflow-visible">
