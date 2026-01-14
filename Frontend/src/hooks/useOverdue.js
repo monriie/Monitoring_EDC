@@ -8,6 +8,7 @@ export const useOverdue = () => {
     warning: 0,
     overdue: 0,
     estimasi_kerugian: 0,
+    statusOverdue: [],
   })
   const [overdueList, setOverdueList] = useState([])
   const [loading, setLoading] = useState(false)
@@ -29,6 +30,7 @@ export const useOverdue = () => {
         warning: response?.warning || 0,
         overdue: response?.overdue || 0,
         estimasi_kerugian: response?.estimasi_kerugian || 0,
+        statusOverdue: Array.isArray(response?.statusOverdue) ? response.statusOverdue : [],
       })
       return { success: true, data: response }
     } catch (err) {

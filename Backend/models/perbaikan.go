@@ -9,7 +9,6 @@ type Perbaikan struct {
 	Mesin   *MesinEDC `gorm:"foreignKey:MesinID"`
 
 	StatusPerbaikan   string // perbaikan | warning | overdue
-	EstimasiPerbaikan *time.Time
 	EstimasiSelesai   *time.Time
 	SN                string
 

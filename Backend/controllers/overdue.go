@@ -15,6 +15,7 @@ func GetOverdueSummary(c *fiber.Ctx) error {
 	var mesin []models.MesinEDC
 	db := database.DB
 
+	// Ambil semua mesin yang sedang perbaikan
 	err := db.
 		Preload("Perbaikan").
 		Preload("Sewa").
@@ -39,43 +40,45 @@ func GetOverdueSummary(c *fiber.Ctx) error {
 		totalPerbaikan++
 
 		p := m.Perbaikan[0]
-		if p.EstimasiPerbaikan == nil {
+		if p.EstimasiSelesai == nil {
 			continue
 		}
 
-		diff := int(now.Sub(*p.EstimasiPerbaikan).Hours() / 24)
+		diff := int(now.Sub(*p.EstimasiSelesai).Hours() / 24)
 
+		// Warning hanya jika mendekati deadline (0-2 hari)
 		if diff >= 3 {
 			overdue++
 			if m.Sewa != nil {
 				totalKerugian += m.Sewa.BiayaBulanan
 			}
-		} else if diff >= 0 {
+		} else if diff >= 0 && diff < 3 {
 			warning++
 		}
 	}
 
-	// ✅ FORMAT BARU (UNTUK FRONTEND)
+	// Susun statusOverdue untuk frontend
 	statusOverdue := []fiber.Map{
 		{
-			"status": "warning",
+			"status": "PERBAIKAN",
+			"total":  totalPerbaikan - warning - overdue, // Mesin yang masih dalam perbaikan normal
+		},
+		{
+			"status": "WARNING",
 			"total":  warning,
 		},
 		{
-			"status": "overdue",
+			"status": "OVERDUE",
 			"total":  overdue,
 		},
 	}
 
+	// Kembalikan response lengkap
 	return utils.Success(c, fiber.Map{
-		// ⬅️ data lama (jaga kompatibilitas)
-		"total_perbaikan": totalPerbaikan,
-		"warning":         warning,
-		"overdue":         overdue,
-
-		// ⬅️ data baru (dipakai React .find())
-		"statusOverdue": statusOverdue,
-
+		"total_perbaikan":   totalPerbaikan,
+		"warning":           warning,
+		"overdue":           overdue,
+		"statusOverdue":     statusOverdue,
 		"estimasi_kerugian": totalKerugian,
 	})
 }
@@ -83,6 +86,7 @@ func GetOverdueSummary(c *fiber.Ctx) error {
 func GetOverdueList(c *fiber.Ctx) error {
 	var mesin []models.MesinEDC
 
+	// Ambil semua mesin yang sedang perbaikan
 	err := database.DB.
 		Preload("Perbaikan").
 		Preload("Sewa").
@@ -106,15 +110,15 @@ func GetOverdueList(c *fiber.Ctx) error {
 		status := "PERBAIKAN"
 		kerugian := 0
 
-		if p.EstimasiPerbaikan != nil {
-			diff := int(now.Sub(*p.EstimasiPerbaikan).Hours() / 24)
+		if p.EstimasiSelesai != nil {
+			diff := int(now.Sub(*p.EstimasiSelesai).Hours() / 24)
 
 			if diff >= 3 {
 				status = "OVERDUE"
 				if m.Sewa != nil {
 					kerugian = m.Sewa.BiayaBulanan
 				}
-			} else if diff >= 0 {
+			} else if diff >= 0 && diff < 3 {
 				status = "WARNING"
 			}
 		}
@@ -134,18 +138,17 @@ func GetOverdueList(c *fiber.Ctx) error {
 			BiayaSewa:   kerugian,
 		}
 
-		// ✅ TANGGAL PASANG (string)
+		// Format tanggal pasang
 		tp := dto.FormatDateOnlyPtr(m.TanggalPasang)
 		if tp != "" {
 			machineResp.TanggalPasang = tp
 		}
 
-		// ✅ ESTIMASI SELESAI (*string)
-		es := dto.FormatDateOnlyPtr(p.EstimasiPerbaikan)
+		// Format estimasi selesai
+		es := dto.FormatDateOnlyPtr(p.EstimasiSelesai)
 		if es != "" {
 			machineResp.EstimasiSelesai = &es
 		}
-
 
 		result = append(result, machineResp)
 	}
@@ -183,15 +186,15 @@ func SearchOverdue(c *fiber.Ctx) error {
 		status := "PERBAIKAN"
 		kerugian := 0
 
-		if p.EstimasiPerbaikan != nil {
-			diff := int(now.Sub(*p.EstimasiPerbaikan).Hours() / 24)
+		if p.EstimasiSelesai != nil {
+			diff := int(now.Sub(*p.EstimasiSelesai).Hours() / 24)
 
 			if diff >= 3 {
 				status = "OVERDUE"
 				if m.Sewa != nil {
 					kerugian = m.Sewa.BiayaBulanan
 				}
-			} else if diff >= 0 {
+			} else if diff >= 0 && diff < 3 {
 				status = "WARNING"
 			}
 		}
@@ -211,14 +214,14 @@ func SearchOverdue(c *fiber.Ctx) error {
 			BiayaSewa:   kerugian,
 		}
 
-		// ✅ TANGGAL PASANG (string)
+		// Format tanggal pasang
 		tp := dto.FormatDateOnlyPtr(m.TanggalPasang)
 		if tp != "" {
 			machineResp.TanggalPasang = tp
 		}
 
-		// ✅ ESTIMASI SELESAI (*string)
-		es := dto.FormatDateOnlyPtr(p.EstimasiPerbaikan)
+		// Format estimasi selesai
+		es := dto.FormatDateOnlyPtr(p.EstimasiSelesai)
 		if es != "" {
 			machineResp.EstimasiSelesai = &es
 		}
