@@ -14,43 +14,36 @@ export const useDashboard = () => {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
 
-  // Fetch all dashboard data
   const fetchDashboardData = useCallback(async () => {
     setLoading(true)
     setError(null)
 
     try {
-      const [
-        totalMesinRes,
-        terdataBankRes,
-        statusMesinRes,
-        statusOverdueRes,
-        mesinBaruRes,
-        monitoringOverdueRes,
-      ] = await Promise.all([
-        dashboardAPI.getTotalMesin(),
-        dashboardAPI.getTerdataBank(),
-        dashboardAPI.getStatusMesin(),
-        dashboardAPI.getStatusOverdue(),
-        dashboardAPI.getMesinBaruVendor(),
-        dashboardAPI.getMonitoringOverdue(),
-      ])
+      // ✅ SATU endpoint saja
+      const res = await dashboardAPI.GetDashboard()
+
+      const data = res
 
       setStats({
-        totalMesin: totalMesinRes?.data?.total_mesin ?? 0,
-        terdataBank: terdataBankRes?.data?.mesin_terdata_bank ?? 0,
-        statusMesin: statusMesinRes?.data ?? [],
-        statusOverdue: statusOverdueRes?.data?.statusOverdue ?? [],
+        totalMesin: data.stats?.totalMesin ?? 0,
+        terdataBank: data.stats?.terdataBank ?? 0,
+        statusMesin: data.stats?.statusMesin ?? [],
+        statusOverdue: data.stats?.statusOverdue ?? [],
       })
-      
-      setMesinBaru(mesinBaruRes ?? [])
-      setOverdueList(monitoringOverdueRes?.monitoring_overdue ?? [])
+
+      setMesinBaru(data.mesinBaru ?? [])
+      setOverdueList(data.monitoringOverdue ?? [])
 
       return { success: true }
     } catch (err) {
-      const errorMessage = err.message || 'Gagal memuat data dashboard'
+      const errorMessage =
+        err?.response?.data?.message ||
+        err.message ||
+        'Gagal memuat data dashboard'
+
       setError(errorMessage)
       toast.error(errorMessage)
+
       return { success: false, error: errorMessage }
     } finally {
       setLoading(false)

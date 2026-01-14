@@ -67,12 +67,7 @@ apiClient.interceptors.response.use(
 )
 
 export const dashboardAPI = {
-  getTotalMesin: () => apiClient.get('api/dashboard/total-mesin'),
-  getTerdataBank: () => apiClient.get('api/dashboard/terdata-bank'),
-  getStatusMesin: () => apiClient.get('api/dashboard/status-mesin'),
-  getStatusOverdue: () => apiClient.get('api/dashboard/status-overdue'),
-  getMesinBaruVendor: () => apiClient.get('api/dashboard/mesin-baru-vendor'),
-  getMonitoringOverdue: () => apiClient.get('api/dashboard/monitoring-overdue'),
+  GetDashboard: () => apiClient.get('api/dashboard'),
 }
 
 export const overdueAPI = {

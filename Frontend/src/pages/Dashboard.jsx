@@ -101,21 +101,21 @@ const Dashboard = () => {
             ) : (
               <div className="space-y-3">
                 {mesinBaru.slice(0, 4).map(machine => (
-                  <Link key={machine.terminal_id} to={`/mesin/${machine.terminal_id}`}>
+                  <Link key={machine.TerminalID} to={`/mesin/${machine.terminal_id}`}>
                     <div className="mb-3 bg-orange-50 p-4 rounded-lg border border-orange-200 cursor-pointer hover:shadow-md transition-all">
                       <div className="flex justify-between items-start mb-2">
                         <div>
-                          <p className="font-semibold text-gray-900">{machine.terminal_id}</p>
-                          <p className="text-sm text-gray-600">{machine.tipe_edc || 'N/A'}</p>
+                          <p className="font-semibold text-gray-900">{machine.TerminalID}</p>
+                          <p className="text-sm text-gray-600">{machine.TipeEDC || 'N/A'}</p>
                         </div>
-                        <StatusBadge status={machine.status_data} />
+                        <StatusBadge status={machine.StatusData} />
                       </div>
                       <div className="grid grid-cols-2 gap-2 text-xs text-gray-600">
                         <div>
-                          <span className="font-medium">Dipasang:</span> {machine.tanggal_pasang}
+                          <span className="font-medium">Dipasang:</span> {machine.TanggalPasang}
                         </div>
                         <div>
-                          <span className="font-medium">Cabang:</span> {machine.cabang || '-'}
+                          <span className="font-medium">Cabang:</span> {machine.Cabang || '-'}
                         </div>
                       </div>
                     </div>
@@ -155,12 +155,12 @@ const Dashboard = () => {
                   const isOverdue = machine.status_perbaikan === 'overdue'
 
                   return (
-                    <Link key={machine.terminal_id} to={`/mesin/${machine.terminal_id}`}>
+                    <Link key={machine.TerminalID} to={`/mesin/${machine.terminal_id}`}>
                       <div className="bg-gray-50 p-3 rounded-lg cursor-pointer hover:bg-gray-100 transition-all border border-gray-200">
                         <div className="flex justify-between items-start mb-1">
                           <div>
-                            <p className="text-sm font-semibold text-gray-900">{machine.terminal_id}</p>
-                            <p className="text-xs text-gray-500">{machine.nama_nasabah || 'N/A'}</p>
+                            <p className="text-sm font-semibold text-gray-900">{machine.TerminalID}</p>
+                            <p className="text-xs text-gray-500">{machine.NamaNasabah || 'N/A'}</p>
                           </div>
                           <Badge variant={isOverdue ? 'destructive' : 'warning'}>
                             {isOverdue ? `${days}h Overdue` : 'Warning'}
