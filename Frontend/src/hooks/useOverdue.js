@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { overdueAPI } from '@/service/api'
+import { normalizeMachinesList } from '@/utils/statusNormalizer'
 import toast from 'react-hot-toast'
 
 export const useOverdue = () => {
@@ -14,15 +15,13 @@ export const useOverdue = () => {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
 
-  // Fetch overdue summary
   const fetchSummary = useCallback(async () => {
     setLoading(true)
     setError(null)
 
     try {
       const response = await overdueAPI.getSummary()
-      // Ensure we have valid data structure
-
+      
       console.log('SUMMARY RESPONSE:', response)
 
       setSummary({
@@ -36,7 +35,6 @@ export const useOverdue = () => {
     } catch (err) {
       const errorMessage = err.message || 'Gagal memuat summary overdue'
       setError(errorMessage)
-      // Don't show toast on initial load
       console.error('Overdue summary error:', errorMessage)
       return { success: false, error: errorMessage }
     } finally {
@@ -44,16 +42,18 @@ export const useOverdue = () => {
     }
   }, [])
 
-  // Fetch overdue list
   const fetchList = useCallback(async () => {
     setLoading(true)
     setError(null)
 
     try {
       const response = await overdueAPI.getList()
-      // Ensure array format
-      setOverdueList(Array.isArray(response) ? response : [])
-      return { success: true, data: response }
+      
+      // Normalisasi status dari backend
+      const normalized = normalizeMachinesList(Array.isArray(response) ? response : [])
+      setOverdueList(normalized)
+      
+      return { success: true, data: normalized }
     } catch (err) {
       const errorMessage = err.message || 'Gagal memuat list overdue'
       setError(errorMessage)
@@ -64,7 +64,6 @@ export const useOverdue = () => {
     }
   }, [])
 
-  // Search overdue
   const searchOverdue = useCallback(async (query) => {
     if (!query) {
       await fetchList()
@@ -76,8 +75,12 @@ export const useOverdue = () => {
 
     try {
       const response = await overdueAPI.search(query)
-      setOverdueList(Array.isArray(response) ? response : [])
-      return { success: true, data: response }
+      
+      // Normalisasi status dari backend
+      const normalized = normalizeMachinesList(Array.isArray(response) ? response : [])
+      setOverdueList(normalized)
+      
+      return { success: true, data: normalized }
     } catch (err) {
       const errorMessage = err.message || 'Gagal mencari overdue'
       setError(errorMessage)
@@ -102,4 +105,4 @@ export const useOverdue = () => {
     fetchList,
     searchOverdue,
   }
-}
+};

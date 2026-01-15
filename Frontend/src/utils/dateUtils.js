@@ -1,17 +1,23 @@
-import { MS_PER_DAY, WARNING_THRESHOLD_DAYS } from './constants'
+import { MS_PER_DAY } from './constants'
 
-export const calculateDaysOverdue = (estimateDate) => {
-  if (!estimateDate) return 0
-  const today = new Date()
-  const estimate = new Date(estimateDate)
-  const diff = Math.floor((today - estimate) / MS_PER_DAY)
-  return diff >= 3 ? diff : 0
+// Get status perbaikan berdasarkan estimasi
+export const getStatusPerbaikan = (estimateDate) => {
+  const daysLate = calculateDaysOverdue(estimateDate)
+  
+   if (diff >= 3) return 'OVERDUE'
+  if (diff >= 0) return 'WARNING'
+  return 'PERBAIKAN'
 }
 
 export const isNewMachine = (tanggalPasang, thresholdDays = 30) => {
   if (!tanggalPasang) return false
-  const today = new Date()
-  const pasang = new Date(tanggalPasang)
-  const diffDays = Math.ceil((today - pasang) / MS_PER_DAY)
-  return diffDays <= thresholdDays
+  
+  try {
+    const today = new Date()
+    const pasang = new Date(tanggalPasang)
+    const diffDays = Math.ceil((today - pasang) / MS_PER_DAY)
+    return diffDays <= thresholdDays
+  } catch {
+    return false
+  }
 }

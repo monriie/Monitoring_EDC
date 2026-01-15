@@ -15,12 +15,11 @@ import { Button } from '@/components/ui/button'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import Breadcrumb from '@/components/common/Breadcrumb'
 import StatusBadge from '@/components/common/StatusBadge'
-import { calculateDaysOverdue } from '@/utils/dateUtils'
-import { calculateLoss, normalizeStatusData } from '@/utils/helper'
 import { formatCurrency } from '@/utils/formatter'
 import { useMesinDetail } from '@/hooks/useMesinDetail'
 import { useParams } from 'react-router'
 import Loading from '@/components/common/Loading'
+import toast from 'react-hot-toast'
 
 const DetailMesin = () => {
   const { id } = useParams()
@@ -61,7 +60,7 @@ const DetailMesin = () => {
         vendor: updatedData.vendor || '',
         status_mesin: updatedData.status_mesin || 'AKTIF',
         status_data:updatedData.status_data || 'VENDOR_ONLY',
-        status_sewa: updatedData.status_sewa || 'BERAKHIR',
+        biaya_bulanan: updatedData.status_sewa || 'BERAKHIR',
         status_letak: updatedData.status_letak || 'NASABAH',
 
         tanggal_pasang: updatedData.tanggal_pasang
@@ -111,7 +110,10 @@ const DetailMesin = () => {
   const mid = machine.informasi_mesin?.mid || machine.mid || 'N/A'
   const tipeEdc = machine.informasi_mesin?.tipe_edc || machine.tipe_edc || 'N/A'
   const statusMesin = machine.informasi_mesin?.status_mesin || machine.status_mesin || 'AKTIF'
-  const statusData = normalizeStatusData(machine.status_data || machine.informasi_mesin?.status_data || 'VENDOR_ONLY').toUpperCase()
+  const statusData = machine.status_data
+  const statusSewa = machine.status_sewa
+  const statusLetak = machine.status_letak
+
   const sumberData = statusData
   
   const namaNasabah = machine.nama_nasabah?.trim()? machine.nama_nasabah : machine.informasi_lokasi?.nama_nasabah?.trim()? machine.informasi_lokasi.nama_nasabah : 'Belum terdata'
@@ -122,8 +124,8 @@ const DetailMesin = () => {
   const biayaBulanan = machine.informasi_sewa?.biaya_bulanan || machine.biaya_sewa || 0
   const estimasiSelesai = machine.informasi_sewa?.estimasi_selesai || machine.estimasi_selesai || null
 
-  const daysOverdue = calculateDaysOverdue(estimasiSelesai)
-  const loss = calculateLoss({ biaya_sewa: biayaBulanan }, daysOverdue)
+  const daysOverdue = machine.days_overdue || 0
+  const loss = machine.biaya_sewa || 0
 
   const InfoItem = ({ label, value, icon: Icon }) => (
     <div className="flex items-start gap-3 group">
@@ -182,6 +184,15 @@ const DetailMesin = () => {
               <p className="text-xs text-gray-500 mb-1">Status Data</p>
               <StatusBadge status={statusData} />
             </div>
+            <div>
+              <p className="text-xs text-gray-500 mb-1">Status Sewa</p>
+              <StatusBadge status={statusSewa} />
+            </div>
+
+            <div>
+              <p className="text-xs text-gray-500 mb-1">Letak Mesin</p>
+              <StatusBadge status={statusLetak} />
+            </div>
             <div className="pt-4 border-t col-span-2 mt-2">
               <div className="flex flex-wrap gap-3">
                 <div className="flex items-center gap-2 bg-green-50 text-green-700 px-3 py-2 rounded-lg border border-green-200">
@@ -239,10 +250,10 @@ const DetailMesin = () => {
                   <Alert className="bg-linear-to-br from-red-50 to-red-100 rounded-lg p-4 border border-red-200">
                     <AlertDescription>
                       <p className="text-base text-gray-600 mb-1">
-                        Overdue: <span className="font-bold text-base text-[#ed1c24] mb-1">{daysOverdue} hari</span>
+                        Overdue: {' '}<span className="font-bold text-base text-[#ed1c24] mb-1">{daysOverdue} hari</span>
                       </p>
                       <p className="text-base text-gray-600 mb-1">
-                        Estimasi Kerugian{' '}
+                        Estimasi Kerugian
                         <span className="font-bold text-base md:text-xl text-[#ed1c24] flex flex-col">
                           {formatCurrency(loss)}
                         </span>

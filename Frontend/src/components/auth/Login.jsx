@@ -27,7 +27,7 @@ export const Login = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
-      <Card className="w-full max-w-md">
+      <Card className="w-full max-w-md py-6">
         <CardHeader className="space-y-1">
           <div className="flex items-center gap-3 mb-2">
             <div className="p-2 bg-[#00AEEF] rounded-lg">

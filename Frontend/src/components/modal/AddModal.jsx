@@ -81,7 +81,7 @@ const AddModal = () => {
     })
   }
 
-  // ✅ FIX: Properly call API
+  // Properly call API
   const handleAddSatuan = async () => {
     if (!newMachine.terminal_id || !newMachine.mid) {
       toast.error('Terminal ID dan MID wajib diisi!')

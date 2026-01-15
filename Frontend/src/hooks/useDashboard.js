@@ -19,7 +19,6 @@ export const useDashboard = () => {
     setError(null)
 
     try {
-      // ✅ SATU endpoint saja
       const res = await dashboardAPI.GetDashboard()
 
       const data = res

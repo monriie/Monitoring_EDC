@@ -1,35 +1,47 @@
 import { MS_PER_DAY } from "./constants";
 
 export const calculateLoss = (machine, daysOverdue) => {
-  if (!machine.biaya_sewa || daysOverdue <= 0) return 0
-  const dailyCost = machine.biaya_sewa / 30
+  const biaya = machine.biaya_sewa || machine.biaya_bulanan || 0
+
+  if (!biaya || daysOverdue <= 0) return 0
+  const dailyCost = biaya / 30
   return Math.round(daysOverdue * dailyCost)
 }
 
 export const getOverdueInfo = (machine, today = new Date()) => {
   if (!machine.estimasi_selesai) {
-    return { 
-      isOverdue: false, 
-      daysLate: 0, 
+    return {
+      statusPerbaikan: 'PERBAIKAN',
+      isOverdue: false,
       isWarning: false,
       isPerbaikan: true,
-      statusPerbaikan: 'PERBAIKAN'
+      daysLate: 0
     }
   }
 
+  today.setHours(0, 0, 0, 0)
   const estimate = new Date(machine.estimasi_selesai)
-  
-  const diff = Math.floor((today - estimate) / MS_PER_DAY)
+  estimate.setHours(0, 0, 0, 0)
+
+  const diff = Math.floor((estimate - today) / MS_PER_DAY)
+
+  /**
+   * diff:
+   * > 3  → masih aman
+   * 3..0 → WARNING (H-3 s/d H)
+   * < 0  → OVERDUE
+   */
+
   let statusPerbaikan = 'PERBAIKAN'
   let isOverdue = false
   let isWarning = false
   let daysLate = 0
-  
-  if (diff >= 3) {
+
+  if (diff < 0) {
     statusPerbaikan = 'OVERDUE'
     isOverdue = true
-    daysLate = diff
-  } else if (diff >= 0) {
+    daysLate = Math.abs(diff)
+  } else if (diff <= 3) {
     statusPerbaikan = 'WARNING'
     isWarning = true
   }
@@ -39,20 +51,6 @@ export const getOverdueInfo = (machine, today = new Date()) => {
     isOverdue,
     isWarning,
     isPerbaikan: statusPerbaikan === 'PERBAIKAN',
-    daysLate,
+    daysLate
   }
-};
-
-// Tambahkan helper function di atas component
-export const normalizeStatusData = (status) => {
-  if (!status) return 'VENDOR_ONLY'
-  
-  const normalized = status.toUpperCase()
-  
-  // Handle semua kemungkinan format dari backend
-  if (normalized === 'BANK' || normalized === 'TERDATA_BANK') {
-    return 'TERDATA_BANK'
-  }
-  
-  return 'VENDOR_ONLY'
 }

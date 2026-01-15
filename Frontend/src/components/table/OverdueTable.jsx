@@ -4,14 +4,14 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { FileText, Sparkles } from 'lucide-react'
 import { Link } from 'react-router'
-import { calculateDaysOverdue } from '@/utils/dateUtils'
-import { calculateLoss } from '@/utils/helper'
 import { formatCurrency } from '@/utils/formatter'
 import StatusBadge from '../common/StatusBadge'
 import { isNewMachine } from '@/utils/dateUtils'
+import { STATUS_COLORS, STATUS_LABELS, STATUS_PERBAIKAN } from '@/utils/constants'
+
 
 const OverdueTable = ({ machines}) => {
-
+  console.log("machine",machines)
   return (
     <Table>
       <TableHeader className="bg-gray-200/50">
@@ -28,10 +28,11 @@ const OverdueTable = ({ machines}) => {
         </TableRow>
       </TableHeader>
       <TableBody>
+        
         {machines.map(machine => {
-          const daysLate = calculateDaysOverdue(machine.estimasi_selesai)
-          const loss = calculateLoss(machine, daysLate)
-          const isOverdue = daysLate > 0
+          const status = machine.status_perbaikan || STATUS_PERBAIKAN.PERBAIKAN
+          const daysLate = machine.days_overdue || 0
+          const loss = machine.estimasi_kerugian || 0
           const isNew = isNewMachine(machine.tanggal_pasang)
 
           return (
@@ -60,9 +61,7 @@ const OverdueTable = ({ machines}) => {
                 <span className="font-semibold flex justify-center text-[#ed1c24]">{daysLate} hari</span>
               </TableCell>
               <TableCell className="text-center">
-                <Badge variant={isOverdue ? 'destructive' : 'warning'}>
-                  {isOverdue ? 'Overdue' : 'Warning'}
-                </Badge>
+                 <Badge className={STATUS_COLORS[status]}>{STATUS_LABELS[status] ?? status}</Badge>
               </TableCell>
               <TableCell className="table-cell font-semibold text-[#ed1c24] text-center">
                 {formatCurrency(loss)}
