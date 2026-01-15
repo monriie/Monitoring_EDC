@@ -20,6 +20,7 @@ import { useMesinDetail } from '@/hooks/useMesinDetail'
 import { useParams } from 'react-router'
 import Loading from '@/components/common/Loading'
 import toast from 'react-hot-toast'
+import { normalizeStatusLetak, normalizeStatusSewa } from '@/utils/statusNormalizer'
 
 const DetailMesin = () => {
   const { id } = useParams()
@@ -52,6 +53,7 @@ const DetailMesin = () => {
     const handleMachineUpdated = async (e) => {
       const updatedData = e.detail
       
+      // Mapping data yang benar ke format backend
       const backendData = {
         nama_nasabah: updatedData.nama_nasabah || '',
         kota: updatedData.kota || '',
@@ -59,15 +61,15 @@ const DetailMesin = () => {
         tipe_edc: updatedData.tipe_edc || '',
         vendor: updatedData.vendor || '',
         status_mesin: updatedData.status_mesin || 'AKTIF',
-        status_data:updatedData.status_data || 'VENDOR_ONLY',
-        biaya_bulanan: updatedData.status_sewa || 'BERAKHIR',
+        status_data: updatedData.status_data || 'VENDOR_ONLY',
+        status_sewa: updatedData.status_sewa || 'BERAKHIR', // ✅ FIX: Ini yang benar
         status_letak: updatedData.status_letak || 'NASABAH',
 
         tanggal_pasang: updatedData.tanggal_pasang
           ? new Date(updatedData.tanggal_pasang)
           : null,
 
-        biaya_bulanan: parseInt(updatedData.biaya_sewa) || 0,
+        biaya_bulanan: parseInt(updatedData.biaya_sewa) || 0, // ✅ FIX: Parse dari biaya_sewa
 
         estimasi_selesai:
           updatedData.estimasi_selesai
@@ -75,14 +77,14 @@ const DetailMesin = () => {
             : null,
       }
 
-      // console.log('Sending to backend:', backendData)
+      console.log('Sending to backend:', backendData)
 
       const result = await updateMachine(backendData)
-    if (result.success) {
-      await fetchDetail()
-      dispatchEvent(new Event('rekapUpdated'))
-      toast.success('Data mesin berhasil diperbarui')
-    }
+      if (result.success) {
+        await fetchDetail()
+        dispatchEvent(new Event('rekapUpdated'))
+        toast.success('Data mesin berhasil diperbarui')
+      }
     }
 
     addEventListener('machineUpdated', handleMachineUpdated)
@@ -110,9 +112,9 @@ const DetailMesin = () => {
   const mid = machine.informasi_mesin?.mid || machine.mid || 'N/A'
   const tipeEdc = machine.informasi_mesin?.tipe_edc || machine.tipe_edc || 'N/A'
   const statusMesin = machine.informasi_mesin?.status_mesin || machine.status_mesin || 'AKTIF'
-  const statusData = machine.status_data
-  const statusSewa = machine.status_sewa
-  const statusLetak = machine.status_letak
+  const statusData = machine.informasi_mesin?.status_data || machine.status_data
+  const statusSewa = normalizeStatusSewa(machine.informasi_mesin?.status_sewa || machine.status_sewa)
+  const statusLetak = normalizeStatusLetak(machine.informasi_mesin?.status_letak || machine.status_letak)
 
   const sumberData = statusData
   
@@ -165,7 +167,7 @@ const DetailMesin = () => {
         </div>
       </div>
 
-      {/* Main Content - Rest tetap sama */}
+      {/* Main Content */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Status Overview Card */}
         <Card className="lg:col-span-1 gap-3 py-4">
