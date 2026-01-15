@@ -372,11 +372,6 @@ const AddModal = () => {
                     <li>Format: .xlsx atau .xls</li>
                   </ul>
                 )}
-                <div className="mt-2">
-                  <a href="#" className="text-[#00AEEF] hover:underline font-medium">
-                    Download Template Excel {uploadSource === 'vendor' ? 'Vendor' : 'Bank'} →
-                  </a>
-                </div>
               </AlertDescription>
             </Alert>
 
@@ -395,9 +390,6 @@ const AddModal = () => {
                     <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                     <div className="text-lg font-medium text-gray-700 mb-2">
                       Klik untuk upload file Excel {uploadSource === 'vendor' ? 'Vendor' : 'Bank'}
-                    </div>
-                    <div className="text-sm text-gray-500">
-                      atau drag and drop file di sini
                     </div>
                   </label>
                   <div className="text-xs text-gray-400 mt-4">

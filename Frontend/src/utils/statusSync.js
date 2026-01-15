@@ -6,7 +6,7 @@ const syncMachineStatuses = (machine, changedField, newValue) => {
   if (changedField === 'status_mesin' && newValue === 'RUSAK') {
     updated.status_sewa = 'BERAKHIR'
     updated.status_letak = 'BANK'
-    warning = 'Status sewa otomatis berubah menjadi BERAKHIR'
+    warning = 'Status sewa otomatis berubah menjadi berakhir'
   }
 
   // Mesin PERBAIKAN → Letak VENDOR
