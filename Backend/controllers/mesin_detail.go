@@ -15,7 +15,6 @@ func GetDetailMesin(c *fiber.Ctx) error {
 
 	var mesin models.MesinEDC
 	if err := database.DB.
-		Preload("Sewas").
 		Preload("Perbaikan", func(db *gorm.DB) *gorm.DB {
 			return db.Order("created_at DESC")
 		}).
@@ -42,27 +41,58 @@ func GetDetailMesin(c *fiber.Ctx) error {
 
 	resp.InformasiLokasi.Cabang = mesin.Cabang
 	resp.InformasiLokasi.Kota = mesin.Kota
-
-	resp.InformasiLokasi.StatusLetak = dto.MapStatusLetak(mesin.LetakMesin) // ✅ FIX UTAMA
+	resp.InformasiLokasi.StatusLetak = dto.MapStatusLetak(mesin.LetakMesin)
 
 	if mesin.TanggalPasang != nil {
-		resp.InformasiLokasi.TanggalPasang =
-			dto.FormatDateOnlyPtr(mesin.TanggalPasang)
+		resp.InformasiLokasi.TanggalPasang = dto.FormatDateOnlyPtr(mesin.TanggalPasang)
 	}
 	
-	// ================= INFORMASI SEWA =================
-	var sewa models.Sewa
-	err := database.DB.
-		Where("mesin_id = ?", mesin.ID).
+	// ================= INFORMASI SEWA ================= 
+	// ✅ FIX: Query sewa aktif terlebih dahulu
+	var sewaAktif models.Sewa
+	errAktif := database.DB.
+		Where("mesin_id = ? AND status_sewa = ?", mesin.ID, "aktif").
 		Order("created_at DESC").
-		First(&sewa).Error
+		First(&sewaAktif).Error
 
-	if err == nil {
-		resp.InformasiSewa.StatusSewa = dto.MapStatusSewa(sewa.StatusSewa)
-		resp.InformasiSewa.BiayaBulanan = sewa.BiayaBulanan
+	if errAktif == nil {
+		// Ada sewa aktif
+		resp.InformasiSewa.StatusSewa = "AKTIF"
+		
+		// ✅ Normalisasi biaya - jika <= 0, gunakan default 150k
+		if sewaAktif.BiayaBulanan > 0 {
+			resp.InformasiSewa.BiayaBulanan = sewaAktif.BiayaBulanan
+		} else {
+			resp.InformasiSewa.BiayaBulanan = 150000
+		}
 	} else {
-		resp.InformasiSewa.StatusSewa = "BERAKHIR"
-		resp.InformasiSewa.BiayaBulanan = 0
+		// Tidak ada sewa aktif, cari sewa terakhir untuk histori
+		var sewaLast models.Sewa
+		errLast := database.DB.
+			Where("mesin_id = ?", mesin.ID).
+			Order("created_at DESC").
+			First(&sewaLast).Error
+
+		if errLast == nil {
+			resp.InformasiSewa.StatusSewa = dto.MapStatusSewa(sewaLast.StatusSewa)
+			
+			// Jika status berakhir, biaya = 0
+			if sewaLast.StatusSewa == "berakhir" {
+				resp.InformasiSewa.BiayaBulanan = 0
+			} else {
+				// Safety: normalisasi biaya
+				if sewaLast.BiayaBulanan > 0 {
+					resp.InformasiSewa.BiayaBulanan = sewaLast.BiayaBulanan
+				} else {
+					resp.InformasiSewa.BiayaBulanan = 150000
+				}
+			}
+		} else {
+				// Tidak ada data sewa sama sekali
+		statusSewa, biayaBulanan := getBiayaSewaForMesin(database.DB, mesin.ID)
+		resp.InformasiSewa.StatusSewa = statusSewa
+		resp.InformasiSewa.BiayaBulanan = biayaBulanan
+		}
 	}
 
 	// ================= ESTIMASI PERBAIKAN =================
@@ -70,7 +100,6 @@ func GetDetailMesin(c *fiber.Ctx) error {
 		formatted := dto.FormatDateOnlyPtr(mesin.Perbaikan[0].EstimasiSelesai)
 		resp.InformasiSewa.EstimasiSelesai = &formatted
 	}
-
 
 	resp.SumberData = dto.MapStatusData(mesin.StatusData)
 
@@ -199,4 +228,46 @@ func UpdateMesin(c *fiber.Ctx) error {
 	}
 
 	return utils.Success(c, "Data mesin berhasil diperbarui")
+}
+
+// ================= HELPER: GET BIAYA SEWA =================
+func getBiayaSewaForMesin(db *gorm.DB, mesinID uint) (statusSewa string, biaya int) {
+	var sewaAktif models.Sewa
+	errAktif := db.
+		Where("mesin_id = ? AND status_sewa = ?", mesinID, "aktif").
+		Order("created_at DESC").
+		First(&sewaAktif).Error
+
+	if errAktif == nil {
+		// Ada sewa aktif
+		statusSewa = "AKTIF"
+		if sewaAktif.BiayaBulanan > 0 {
+			biaya = sewaAktif.BiayaBulanan
+		} else {
+			biaya = 150000 // Default
+		}
+		return
+	}
+
+	// Tidak ada sewa aktif
+	var sewaLast models.Sewa
+	errLast := db.
+		Where("mesin_id = ?", mesinID).
+		Order("created_at DESC").
+		First(&sewaLast).Error
+
+	if errLast == nil {
+		statusSewa = mapStatusSewaToDTO(sewaLast.StatusSewa)
+		if sewaLast.StatusSewa == "berakhir" {
+			biaya = 0
+		} else {
+			biaya = normalizeBiayaBulanan(sewaLast.BiayaBulanan)
+		}
+		return
+	}
+
+	// Tidak ada data sewa
+	statusSewa = "BERAKHIR"
+	biaya = 0
+	return
 }
