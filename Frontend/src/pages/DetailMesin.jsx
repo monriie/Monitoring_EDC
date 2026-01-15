@@ -39,7 +39,7 @@ const DetailMesin = () => {
         status_mesin: machine.informasi_mesin?.status_mesin || machine.status_mesin || 'AKTIF',
         status_data: machine.status_data || machine.informasi_mesin?.status_data || 'VENDOR_ONLY',
         status_sewa: machine.informasi_sewa?.status_sewa || machine.status_sewa || 'BERAKHIR',
-        status_letak: machine.informasi_lokasi?.status_letak || machine.status_letak || 'NASABAH',
+        status_letak: machine.informasi_lokasi?.status_letak ?? null,
         tanggal_pasang: machine.informasi_lokasi?.tanggal_pasang || machine.tanggal_pasang || '',
         biaya_sewa: machine.informasi_sewa?.biaya_bulanan || machine.biaya_sewa || 0,
         estimasi_selesai: machine.informasi_sewa?.estimasi_selesai || machine.estimasi_selesai || null,
@@ -113,8 +113,8 @@ const DetailMesin = () => {
   const tipeEdc = machine.informasi_mesin?.tipe_edc || machine.tipe_edc || 'N/A'
   const statusMesin = machine.informasi_mesin?.status_mesin || machine.status_mesin || 'AKTIF'
   const statusData = machine.informasi_mesin?.status_data || machine.status_data
-  const statusSewa = normalizeStatusSewa(machine.informasi_mesin?.status_sewa || machine.status_sewa)
-  const statusLetak = normalizeStatusLetak(machine.informasi_mesin?.status_letak || machine.status_letak)
+  const statusSewa = normalizeStatusSewa(machine.informasi_sewa?.status_sewa || 'BERAKHIR')
+  const statusLetak = normalizeStatusLetak(machine.informasi_lokasi?.status_letak || machine.status_letak)
 
   const sumberData = statusData
   
