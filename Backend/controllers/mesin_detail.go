@@ -15,7 +15,7 @@ func GetDetailMesin(c *fiber.Ctx) error {
 
 	var mesin models.MesinEDC
 	if err := database.DB.
-		Preload("Sewa").
+		Preload("Sewas").
 		Preload("Perbaikan", func(db *gorm.DB) *gorm.DB {
 			return db.Order("created_at DESC")
 		}).
@@ -39,18 +39,27 @@ func GetDetailMesin(c *fiber.Ctx) error {
 	if mesin.StatusData == "vendor_only" {
 		resp.InformasiLokasi.NamaNasabah = "Belum Terdata"
 	}
+
 	resp.InformasiLokasi.Cabang = mesin.Cabang
 	resp.InformasiLokasi.Kota = mesin.Kota
+
+	resp.InformasiLokasi.StatusLetak = dto.MapStatusLetak(mesin.LetakMesin) // ✅ FIX UTAMA
+
 	if mesin.TanggalPasang != nil {
 		resp.InformasiLokasi.TanggalPasang =
 			dto.FormatDateOnlyPtr(mesin.TanggalPasang)
 	}
-
-
+	
 	// ================= INFORMASI SEWA =================
-	if mesin.Sewa != nil {
-		resp.InformasiSewa.StatusSewa = dto.MapStatusSewa(mesin.Sewa.StatusSewa)
-		resp.InformasiSewa.BiayaBulanan = mesin.Sewa.BiayaBulanan
+	var sewa models.Sewa
+	err := database.DB.
+		Where("mesin_id = ?", mesin.ID).
+		Order("created_at DESC").
+		First(&sewa).Error
+
+	if err == nil {
+		resp.InformasiSewa.StatusSewa = dto.MapStatusSewa(sewa.StatusSewa)
+		resp.InformasiSewa.BiayaBulanan = sewa.BiayaBulanan
 	} else {
 		resp.InformasiSewa.StatusSewa = "BERAKHIR"
 		resp.InformasiSewa.BiayaBulanan = 0

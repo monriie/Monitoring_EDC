@@ -3,6 +3,7 @@ package controllers
 import (
 	"strings"
 	"time"
+	"gorm.io/gorm"
 
 	"github.com/gofiber/fiber/v2"
 	"backend/database"
@@ -17,7 +18,12 @@ func GetRekapMesin(c *fiber.Ctx) error {
 	var mesinList []models.MesinEDC
 
 	query := database.DB.
-		Preload("Sewa").
+		Preload("Sewas", func(db *gorm.DB) *gorm.DB {
+			return db.
+				Where("status_sewa = ?", "aktif").
+				Order("created_at DESC").
+				Limit(1)
+		}).
 		Preload("Perbaikan")
 
 	if search != "" {
@@ -35,7 +41,7 @@ func GetRekapMesin(c *fiber.Ctx) error {
 	var response []dto.MachineResponse
 
 	for _, m := range mesinList {
-		machineResp := dto.MachineResponse{
+		resp := dto.MachineResponse{
 			ID:          m.ID,
 			TerminalID:  m.TerminalID,
 			MID:         m.MID,
@@ -51,38 +57,37 @@ func GetRekapMesin(c *fiber.Ctx) error {
 
 			CreatedAt: dto.FormatDateOnly(m.CreatedAt),
 			UpdatedAt: dto.FormatDateOnly(m.UpdatedAt),
-
 		}
 
-		// ✅ Tanggal Pasang (POINTER SAFE)
-		tp := dto.FormatDateOnlyPtr(m.TanggalPasang)
-		if tp != "" {
-			machineResp.TanggalPasang = tp
+		// ✅ Tanggal Pasang
+		if tp := dto.FormatDateOnlyPtr(m.TanggalPasang); tp != "" {
+			resp.TanggalPasang = tp
 		}
 
-		// ✅ Sewa
-		if m.Sewa != nil {
-			machineResp.StatusSewa = dto.MapStatusSewa(m.Sewa.StatusSewa)
-			machineResp.BiayaSewa = m.Sewa.BiayaBulanan
+		// ✅ STATUS SEWA (AMBIL SEWA AKTIF TERAKHIR)
+		if len(m.Sewas) > 0 {
+			sewa := m.Sewas[0]
+			resp.StatusSewa = dto.MapStatusSewa(sewa.StatusSewa)
+			resp.BiayaSewa = normalizeBiayaBulanan(sewa.BiayaBulanan)
 		} else {
-			machineResp.StatusSewa = "BERAKHIR"
-			machineResp.BiayaSewa = 0
+			resp.StatusSewa = "BERAKHIR"
+			resp.BiayaSewa = 0
 		}
 
-		// ✅ Estimasi Selesai (PERBAIKAN)
+		// ✅ Estimasi selesai perbaikan
 		if len(m.Perbaikan) > 0 {
 			es := dto.FormatDateOnlyPtr(m.Perbaikan[0].EstimasiSelesai)
 			if es != "" {
-				machineResp.EstimasiSelesai = &es
+				resp.EstimasiSelesai = &es
 			}
 		}
 
-
-		response = append(response, machineResp)
+		response = append(response, resp)
 	}
 
 	return utils.Success(c, response)
 }
+
 
 func CreateRekapMesin(c *fiber.Ctx) error {
 	type Request struct {

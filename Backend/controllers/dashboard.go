@@ -74,7 +74,7 @@ func GetDashboard(c *fiber.Ctx) error {
 	
 	err := database.DB.
 		Preload("Perbaikan").
-		Preload("Sewa").
+		Preload("Sewas").
 		Where("status_mesin = ?", "perbaikan").
 		Order("tanggal_pasang DESC").
 		Find(&mesinPerbaikan).Error
@@ -102,8 +102,9 @@ func GetDashboard(c *fiber.Ctx) error {
 		if diffDays < 0 {
 			status = "OVERDUE"
 			daysLate = -diffDays
-			if m.Sewa != nil {
-				dailyCost := float64(m.Sewa.BiayaBulanan) / 30.0
+			if len(m.Sewas) > 0 {
+				sewa := m.Sewas[0]
+				dailyCost := float64(normalizeBiayaBulanan(sewa.BiayaBulanan)) / 30.0
 				kerugian = int(float64(daysLate) * dailyCost)
 			}
 		} else if diffDays <= 3 {
