@@ -17,6 +17,7 @@ export const useRekap = () => {
       const response = await rekapAPI.getAll(searchQuery)
       const data = Array.isArray(response) ? response : []
       setMachines(data)
+      console.log('✅ Fetched machines:', data.length)
       return { success: true, data }
     } catch (err) {
       const errorMessage = err.message || 'Gagal memuat data rekap'
@@ -36,11 +37,12 @@ export const useRekap = () => {
 
     try {
       const response = await rekapAPI.create(data)
-      toast.success('Rekap mesin berhasil ditambahkan')
-      await fetchMachines()
+      console.log('✅ Machine created:', response)
       
-      // Trigger refresh event
-      dispatchEvent(new Event('rekapUpdated'))
+      toast.success('Rekap mesin berhasil ditambahkan')
+      
+      await fetchMachines()
+      window.dispatchEvent(new Event('rekapUpdated'))
       
       return { success: true, data: response }
     } catch (err) {
@@ -60,16 +62,13 @@ export const useRekap = () => {
 
     try {
       const response = await excelAPI.uploadVendor(file)
+      console.log('✅ Vendor Excel uploaded:', response)
       
       toast.success(
         `Upload vendor berhasil! Ditambahkan: ${response.inserted || 0}, Diupdate: ${response.updated || 0}, Dilewati: ${response.skipped || 0}`,
         { duration: 5000 }
       )
-      
-      // Refresh data
       await fetchMachines()
-      
-      // Trigger refresh event
       dispatchEvent(new Event('rekapUpdated'))
       
       return { success: true, data: response }
@@ -90,16 +89,14 @@ export const useRekap = () => {
 
     try {
       const response = await excelAPI.uploadBank(file)
+      console.log('✅ Bank Excel uploaded:', response)
       
       toast.success(
         `Upload bank berhasil! Ditambahkan: ${response.inserted || 0}, Diupdate: ${response.updated || 0}, Dilewati: ${response.skipped || 0}`,
         { duration: 5000 }
       )
       
-      // Refresh data
       await fetchMachines()
-      
-      // Trigger refresh event
       dispatchEvent(new Event('rekapUpdated'))
       
       return { success: true, data: response }

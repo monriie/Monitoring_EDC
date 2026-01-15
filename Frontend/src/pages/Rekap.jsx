@@ -44,19 +44,27 @@ const Rekap = () => {
 
   const { currentPage, totalPages, paginatedItems, goToPage } = usePagination(filteredData, 10)
 
-  // Listen untuk refresh event
   useEffect(() => {
     const handleRekapUpdated = () => {
-      console.log('Rekap updated, refreshing data...')
+      console.log('Rekap updated event, refreshing data...')
+      fetchMachines()
+    }
+
+    const handleReloadMachineList = () => {
+      console.log('Reload machine list event, refreshing data...')
       fetchMachines()
     }
 
     addEventListener('rekapUpdated', handleRekapUpdated)
+    addEventListener('reloadMachineList', handleReloadMachineList)
     
-    return () => removeEventListener('rekapUpdated', handleRekapUpdated)
+    return () => {
+      removeEventListener('rekapUpdated', handleRekapUpdated)
+      removeEventListener('reloadMachineList', handleReloadMachineList)
+    }
   }, [fetchMachines])
 
-  //Debounced search dengan useEffect
+  // Debounced search dengan useEffect
   useEffect(() => {
     // Jangan search jika kosong atau kurang dari 3 karakter
     if (searchTerm.length === 0) {
@@ -175,7 +183,9 @@ const Rekap = () => {
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
                 {loading && searchTerm.length >= 3 && (
-                  <Loading/>
+                  <div className="absolute right-3 top-3">
+                    <div className="animate-spin h-4 w-4 border-2 border-gray-300 border-t-blue-600 rounded-full" />
+                  </div>
                 )}
               </div>
               {searchTerm.length > 0 && searchTerm.length < 3 && (
@@ -277,4 +287,4 @@ const Rekap = () => {
   )
 }
 
-export default Rekap
+export default Rekap;

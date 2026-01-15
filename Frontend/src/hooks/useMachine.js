@@ -28,10 +28,23 @@ export const useMachines = () => {
     fetchMachines()
     
     // Listen for reload events
-    const handleReload = () => fetchMachines()
-    addEventListener('reloadMachineList', handleReload)
+    const handleReloadMachineList = () => {
+      console.log('useMachines: reloadMachineList event received')
+      fetchMachines()
+    }
     
-    return () => removeEventListener('reloadMachineList', handleReload)
+    const handleRekapUpdated = () => {
+      console.log('useMachines: rekapUpdated event received')
+      fetchMachines()
+    }
+    
+    addEventListener('reloadMachineList', handleReloadMachineList)
+    addEventListener('rekapUpdated', handleRekapUpdated)
+    
+    return () => {
+      removeEventListener('reloadMachineList', handleReloadMachineList)
+      removeEventListener('rekapUpdated', handleRekapUpdated)
+    }
   }, [fetchMachines])
 
   // Tambah mesin baru

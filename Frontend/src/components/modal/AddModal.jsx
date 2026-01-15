@@ -14,10 +14,10 @@ import toast from 'react-hot-toast'
 const AddModal = () => {
   const [isOpen, setIsOpen] = useState(false)
   const { uploadVendorExcel, uploadBankExcel, loading } = useRekap()
-  const { addMachine } = useMachines() // Destructure addMachine
+  const { addMachine } = useMachines()
   const [activeTab, setActiveTab] = useState('satuan')
   const [uploadSource, setUploadSource] = useState('vendor')
-  const [isSubmitting, setIsSubmitting] = useState(false) // Loading state
+  const [isSubmitting, setIsSubmitting] = useState(false)
   
   const [excelFiles, setExcelFiles] = useState({
     vendor: null,
@@ -116,7 +116,8 @@ const AddModal = () => {
         handleClose()
         
         // Trigger refresh data
-        dispatchEvent(new CustomEvent('reloadMachineList'))
+        dispatchEvent(new Event('reloadMachineList'))
+        dispatchEvent(new Event('rekapUpdated'))
       } else {
         toast.error(result.error || 'Gagal menambahkan mesin')
       }
@@ -170,7 +171,9 @@ const AddModal = () => {
       if (result.success) {
         toast.success('Data berhasil diupload!')
         handleClose()
-        dispatchEvent(new CustomEvent('reloadMachineList'))
+
+        dispatchEvent(new Event('reloadMachineList'))
+        dispatchEvent(new Event('rekapUpdated'))
       }
     } catch (error) {
       console.error('Upload error:', error)
