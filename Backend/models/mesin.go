@@ -4,7 +4,7 @@ import "time"
 
 type MesinEDC struct {
 	ID           uint      `gorm:"primaryKey"`
-	TerminalID   string    `gorm:"unique;not null"json:"terminal_id"`
+	TerminalID   string    `gorm:"unique;not null"`
 	MID          string
 
 	NamaNasabah  string
@@ -24,6 +24,6 @@ type MesinEDC struct {
 	UpdatedAt    time.Time
 
 	// RELATION (POINTER)
-	Sewa      *Sewa        `gorm:"foreignKey:MesinID"`
+	Sewas []Sewa `gorm:"foreignKey:MesinID"`
 	Perbaikan []Perbaikan  `gorm:"foreignKey:MesinID"`
 }

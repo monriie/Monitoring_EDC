@@ -15,6 +15,7 @@ type DetailMesinResponse struct {
 		Cabang        string `json:"cabang"`
 		Kota          string `json:"kota"`
 		TanggalPasang string `json:"tanggal_pasang"` // Format: YYYY-MM-DD
+		StatusLetak   string `json:"status_letak"`
 	} `json:"informasi_lokasi"`
 
 	InformasiSewa struct {
