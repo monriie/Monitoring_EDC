@@ -9,31 +9,40 @@ import (
 	"backend/utils"
 
 	"github.com/gofiber/fiber/v2"
-	"gorm.io/gorm"
 )
 
 // ==========================
 // GetOverdueSummary
 // ==========================
 func GetOverdueSummary(c *fiber.Ctx) error {
-	var mesin []models.MesinEDC
 	db := database.DB
 
-	// Ambil semua MesinEDC dengan status perbaikan
+	var mesin []models.MesinEDC
 	err := db.Preload("Perbaikan").
-		Preload("Sewas", func(db *gorm.DB) *gorm.DB {
-			// Ambil Sewa aktif terakhir
-			sub := db.Model(&models.Sewa{}).
-				Where("status_sewa = ?", "aktif").
-				Order("created_at DESC").
-				Limit(1)
-			return sub
-		}).
 		Where("status_mesin = ?", "perbaikan").
 		Find(&mesin).Error
 
 	if err != nil {
 		return utils.Error(c, "Gagal mengambil data overdue")
+	}
+
+	// Query semua sewa aktif dalam satu query
+	var sewasAktif []models.Sewa
+	err = db.Where("status_sewa = ?", "aktif").
+		Order("created_at DESC").
+		Find(&sewasAktif).Error
+
+	if err != nil {
+		return utils.Error(c, "Gagal mengambil data sewa aktif")
+	}
+
+	// Buat map untuk lookup cepat sewa aktif per mesin
+	sewaMap := make(map[uint]*models.Sewa)
+	for i := range sewasAktif {
+		mesinID := sewasAktif[i].MesinID
+		if _, exists := sewaMap[mesinID]; !exists {
+			sewaMap[mesinID] = &sewasAktif[i]
+		}
 	}
 
 	totalPerbaikan := 0
@@ -57,10 +66,15 @@ func GetOverdueSummary(c *fiber.Ctx) error {
 			overdue++
 			daysLate := -diffDays
 
-			if len(m.Sewas) > 0 {
-				sewa := m.Sewas[0]
-				dailyCost := float64(normalizeBiayaBulanan(sewa.BiayaBulanan)) / 30.0
-				totalKerugian += int(float64(daysLate) * dailyCost)
+			// ✅ LOGIC BARU: Hitung kerugian per bulan penuh
+			if sewa, exists := sewaMap[m.ID]; exists {
+				biayaBulanan := normalizeBiayaBulanan(sewa.BiayaBulanan)
+				
+				// H+1 = 1 bulan, H+31 = 2 bulan, dst
+				bulanOverdue := (daysLate / 30) + 1
+				kerugian := biayaBulanan * bulanOverdue
+				
+				totalKerugian += kerugian
 			}
 
 		} else if diffDays <= 3 {
@@ -87,18 +101,34 @@ func GetOverdueSummary(c *fiber.Ctx) error {
 // GetOverdueList
 // ==========================
 func GetOverdueList(c *fiber.Ctx) error {
-	var mesin []models.MesinEDC
 	db := database.DB
 
+	var mesin []models.MesinEDC
 	err := db.Preload("Perbaikan").
-		Preload("Sewas", func(db *gorm.DB) *gorm.DB {
-			return db.Where("status_sewa = ?", "aktif").Order("created_at DESC").Limit(1)
-		}).
 		Where("status_mesin = ?", "perbaikan").
 		Find(&mesin).Error
 
 	if err != nil {
 		return utils.Error(c, "Gagal mengambil data mesin overdue")
+	}
+
+	// Query semua sewa aktif
+	var sewasAktif []models.Sewa
+	err = db.Where("status_sewa = ?", "aktif").
+		Order("created_at DESC").
+		Find(&sewasAktif).Error
+
+	if err != nil {
+		return utils.Error(c, "Gagal mengambil data sewa aktif")
+	}
+
+	// Buat map untuk lookup
+	sewaMap := make(map[uint]*models.Sewa)
+	for i := range sewasAktif {
+		mesinID := sewasAktif[i].MesinID
+		if _, exists := sewaMap[mesinID]; !exists {
+			sewaMap[mesinID] = &sewasAktif[i]
+		}
 	}
 
 	now := time.Now()
@@ -120,10 +150,13 @@ func GetOverdueList(c *fiber.Ctx) error {
 			status = "OVERDUE"
 			daysLate = -diffDays
 
-			if len(m.Sewas) > 0 {
-				sewa := m.Sewas[0]
-				dailyCost := float64(normalizeBiayaBulanan(sewa.BiayaBulanan)) / 30.0
-				kerugian = int(float64(daysLate) * dailyCost)
+			// ✅ LOGIC BARU: Hitung kerugian per bulan penuh
+			if sewa, exists := sewaMap[m.ID]; exists {
+				biayaBulanan := normalizeBiayaBulanan(sewa.BiayaBulanan)
+				
+				// H+1 = 1 bulan, H+31 = 2 bulan, dst
+				bulanOverdue := (daysLate / 30) + 1
+				kerugian = biayaBulanan * bulanOverdue
 			}
 
 		} else if diffDays <= 3 {
@@ -164,18 +197,35 @@ func GetOverdueList(c *fiber.Ctx) error {
 // ==========================
 func SearchOverdue(c *fiber.Ctx) error {
 	query := c.Query("q")
-	var mesin []models.MesinEDC
+	db := database.DB
 
-	err := database.DB.Preload("Perbaikan").
-		Preload("Sewas", func(db *gorm.DB) *gorm.DB {
-			return db.Where("status_sewa = ?", "aktif").Order("created_at DESC").Limit(1)
-		}).
+	var mesin []models.MesinEDC
+	err := db.Preload("Perbaikan").
 		Where("status_mesin = ? AND (terminal_id LIKE ? OR nama_nasabah LIKE ?)",
 			"perbaikan", "%"+query+"%", "%"+query+"%").
 		Find(&mesin).Error
 
 	if err != nil {
 		return utils.Error(c, "Gagal melakukan pencarian overdue")
+	}
+
+	// Query semua sewa aktif
+	var sewasAktif []models.Sewa
+	err = db.Where("status_sewa = ?", "aktif").
+		Order("created_at DESC").
+		Find(&sewasAktif).Error
+
+	if err != nil {
+		return utils.Error(c, "Gagal mengambil data sewa aktif")
+	}
+
+	// Buat map untuk lookup
+	sewaMap := make(map[uint]*models.Sewa)
+	for i := range sewasAktif {
+		mesinID := sewasAktif[i].MesinID
+		if _, exists := sewaMap[mesinID]; !exists {
+			sewaMap[mesinID] = &sewasAktif[i]
+		}
 	}
 
 	now := time.Now()
@@ -197,10 +247,13 @@ func SearchOverdue(c *fiber.Ctx) error {
 			status = "OVERDUE"
 			daysLate = -diffDays
 
-			if len(m.Sewas) > 0 {
-				sewa := m.Sewas[0]
-				dailyCost := float64(normalizeBiayaBulanan(sewa.BiayaBulanan)) / 30.0
-				kerugian = int(float64(daysLate) * dailyCost)
+			// ✅ LOGIC BARU: Hitung kerugian per bulan penuh
+			if sewa, exists := sewaMap[m.ID]; exists {
+				biayaBulanan := normalizeBiayaBulanan(sewa.BiayaBulanan)
+				
+				// H+1 = 1 bulan, H+31 = 2 bulan, dst
+				bulanOverdue := (daysLate / 30) + 1
+				kerugian = biayaBulanan * bulanOverdue
 			}
 		} else if diffDays <= 3 {
 			status = "WARNING"
