@@ -17,7 +17,7 @@ import Loading from '@/components/common/Loading'
 
 const Overdue = () => {
   const { summary, overdueList, loading, error, fetchList, fetchSummary, searchOverdue } = useOverdue()
-  console.log("summary",summary)
+  // console.log("summary",summary)
   const [searchTerm, setSearchTerm] = useState('')
 
   // Apply filters to overdue machines

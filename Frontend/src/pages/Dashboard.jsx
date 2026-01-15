@@ -10,20 +10,24 @@ import DataBarChart from '@/components/chart/DataBarChart'
 import StatusPieChart from '@/components/chart/StatusPieChart'
 import { useDashboard } from '@/hooks/useDashboard'
 import Loading from '@/components/common/Loading'
+import { useOverdue } from '@/hooks/useOverdue'
+import { STATUS_COLORS, STATUS_LABELS } from '@/utils/constants'
 
 const Dashboard = () => {
   const { stats, mesinBaru, overdueList, loading, error } = useDashboard()
+  const { summary } = useOverdue()
 
   // Transform overdue data for preview
   const overduePreview = useMemo(() => {
     return overdueList.slice(0, 5)
   }, [overdueList])
 
+  console.log('Dashboard overdueList:', overdueList)
+  console.log('Dashboard overduePreview:', overduePreview)
+
   // Loading state
   if (loading) {
-    return (
-      <Loading/>
-    )
+    return <Loading/>
   }
 
   // Error state
@@ -39,9 +43,6 @@ const Dashboard = () => {
       </section>
     )
   }
-
-  // Calculate overdue count from stats
-  const overdueCount = stats.statusOverdue.find(s => s.status === 'overdue')?.total || 0
 
   return (
     <section className="space-y-6">
@@ -68,7 +69,7 @@ const Dashboard = () => {
 
         <StatCard
           title="Status Overdue"
-          value={overdueCount}
+          value={summary.overdue}
           icon={AlertTriangle}
           iconColor="text-[#ed1c24]"
         />
@@ -100,21 +101,21 @@ const Dashboard = () => {
             ) : (
               <div className="space-y-3">
                 {mesinBaru.slice(0, 4).map(machine => (
-                  <Link key={machine.TerminalID} to={`/mesin/${machine.terminal_id}`}>
+                  <Link key={machine.terminal_id} to={`/mesin/${machine.terminal_id}`}>
                     <div className="mb-3 bg-orange-50 p-4 rounded-lg border border-orange-200 cursor-pointer hover:shadow-md transition-all">
                       <div className="flex justify-between items-start mb-2">
                         <div>
-                          <p className="font-semibold text-gray-900">{machine.TerminalID}</p>
-                          <p className="text-sm text-gray-600">{machine.TipeEDC || 'N/A'}</p>
+                          <p className="font-semibold text-gray-900">{machine.terminal_id}</p>
+                          <p className="text-xs text-gray-600">{machine.tipe_edc || 'N/A'}</p>
                         </div>
-                        <StatusBadge status={machine.StatusData} />
+                        <StatusBadge status={machine.status_data} />
                       </div>
                       <div className="grid grid-cols-2 gap-2 text-xs text-gray-600">
                         <div>
-                          <span className="font-medium">Dipasang:</span> {machine.TanggalPasang}
+                          <span className="font-medium">Dipasang:</span> {machine.tanggal_pasang}
                         </div>
                         <div>
-                          <span className="font-medium">Cabang:</span> {machine.Cabang || '-'}
+                          <span className="font-medium">Cabang:</span> {machine.cabang || '-'}
                         </div>
                       </div>
                     </div>
@@ -150,28 +151,34 @@ const Dashboard = () => {
             ) : (
               <div className="space-y-3">
                 {overduePreview.map(machine => {
-                  const days = machine.terlambat_hari || 0
-                  const isOverdue = machine.status_perbaikan === 'overdue'
+                  // Gunakan field yang benar dari backend
+                  const status = machine.status_perbaikan || 'PERBAIKAN'
+                  const daysLate = machine.days_overdue || 0
 
                   return (
-                    <Link key={machine.TerminalID} to={`/mesin/${machine.terminal_id}`}>
+                    <Link key={machine.terminal_id} to={`/mesin/${machine.terminal_id}`} className="block">
                       <div className="bg-gray-50 p-3 rounded-lg cursor-pointer hover:bg-gray-100 transition-all border border-gray-200">
-                        <div className="flex justify-between items-start mb-1">
+                        <div className="flex justify-between items-start mb-2">
                           <div>
-                            <p className="text-sm font-semibold text-gray-900">{machine.TerminalID}</p>
-                            <p className="text-xs text-gray-500">{machine.NamaNasabah || 'N/A'}</p>
+                            <p className="text-sm font-semibold text-gray-900">{machine.terminal_id}</p>
+                            <p className="text-xs text-gray-500">{machine.nama_nasabah || 'N/A'}</p>
                           </div>
-                          <Badge variant={isOverdue ? 'destructive' : 'warning'}>
-                            {isOverdue ? `${days}h Overdue` : 'Warning'}
+                          <Badge className={STATUS_COLORS[status]}>
+                            {STATUS_LABELS[status] || status}
                           </Badge>
                         </div>
+                        {daysLate > 0 && (
+                          <div className="text-xs text-[#ed1c24] font-medium">
+                            Terlambat {daysLate} hari
+                          </div>
+                        )}
                       </div>
                     </Link>
                   )
                 })}
                 <Button variant="link" asChild className="w-full text-[#00AEEF]">
                   <Link to="/overdue">
-                    Lihat semua mesin overdue <ArrowRight />
+                    Lihat semua mesin overdue <ArrowRight size={16} className="ml-1" />
                   </Link>
                 </Button>
               </div>
@@ -182,4 +189,5 @@ const Dashboard = () => {
     </section>
   )
 }
+
 export default Dashboard;
