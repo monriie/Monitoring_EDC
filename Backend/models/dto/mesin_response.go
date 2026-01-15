@@ -2,7 +2,6 @@ package dto
 
 import "time"
 
-// Response format yang konsisten untuk semua endpoint
 type MachineResponse struct {
 	ID              uint    `json:"id"`
 	TerminalID      string  `json:"terminal_id"`
@@ -13,15 +12,19 @@ type MachineResponse struct {
 	Cabang          string  `json:"cabang"`
 	TipeEDC         string  `json:"tipe_edc"`
 	Vendor          string  `json:"vendor"`
-	StatusMesin     string  `json:"status_mesin"`   // AKTIF, PERBAIKAN, RUSAK, NONAKTIF
-	StatusData      string  `json:"status_data"`    // TERDATA_BANK, VENDOR_ONLY
-	StatusSewa      string  `json:"status_sewa"`    // AKTIF, BERAKHIR
-	StatusLetak     string  `json:"status_letak"`   // NASABAH, VENDOR, BANK
-	TanggalPasang   string  `json:"tanggal_pasang"` // Format: YYYY-MM-DD
+	StatusMesin     string  `json:"status_mesin"`
+	StatusData      string  `json:"status_data"`
+	StatusSewa      string  `json:"status_sewa"`
+	StatusLetak     string  `json:"status_letak"`
+	TanggalPasang   string  `json:"tanggal_pasang"`
 	BiayaSewa       int     `json:"biaya_sewa"`
-	EstimasiSelesai *string `json:"estimasi_selesai,omitempty"` // Format: YYYY-MM-DD
-	CreatedAt       string  `json:"created_at"`     // Format: YYYY-MM-DD
-	UpdatedAt       string  `json:"updated_at"`     // Format: YYYY-MM-DD
+	EstimasiSelesai *string `json:"estimasi_selesai,omitempty"`
+	CreatedAt       string  `json:"created_at"`
+	UpdatedAt       string  `json:"updated_at"`
+	
+	// Fields khusus untuk overdue tracking
+	StatusPerbaikan string `json:"status_perbaikan,omitempty"` // PERBAIKAN, WARNING, OVERDUE
+	DaysOverdue     int    `json:"days_overdue,omitempty"`     // Jumlah hari terlambat
 }
 
 func FormatDateOnly(t time.Time) string {
@@ -38,14 +41,13 @@ func FormatDateOnlyPtr(t *time.Time) string {
 	return t.Format("2006-01-02")
 }
 
-// Fungsi helper untuk convert status dari database ke frontend format
 func MapStatusMesin(status string) string {
 	statusMap := map[string]string{
-		"aktif":      "AKTIF",
-		"perbaikan":  "PERBAIKAN",
-		"rusak":      "RUSAK",
+		"aktif":       "AKTIF",
+		"perbaikan":   "PERBAIKAN",
+		"rusak":       "RUSAK",
 		"tidak_aktif": "NONAKTIF",
-		"nonaktif":   "NONAKTIF",
+		"nonaktif":    "NONAKTIF",
 	}
 	if mapped, ok := statusMap[status]; ok {
 		return mapped
@@ -68,6 +70,8 @@ func MapStatusSewa(status string) string {
 	statusMap := map[string]string{
 		"aktif":    "AKTIF",
 		"berakhir": "BERAKHIR",
+		"AKTIF":    "AKTIF",
+		"BERAKHIR": "BERAKHIR",
 	}
 	if mapped, ok := statusMap[status]; ok {
 		return mapped

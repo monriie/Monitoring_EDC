@@ -67,8 +67,8 @@ const SewaTable = ({ machines }) => {
           
           const isNew = isNewMachine(machine.tanggal_pasang)
           
-          // Biaya sudah dinormalisasi dari hook
-            const biayaSewa = machine.biaya_sewa || 150000
+          // Biaya sewa sudah dinormalisasi dari useRekap hook
+          const biayaSewa = machine.biaya_sewa || 150000
 
           return (
             <TableRow 
@@ -98,7 +98,7 @@ const SewaTable = ({ machines }) => {
               <TableCell className="text-center"><StatusBadge status={statusMesin} /></TableCell>
               <TableCell className="table-cell text-center"><StatusBadge status={machine.status_letak} /></TableCell>
               <TableCell className="table-cell text-center"><StatusBadge status={statusSewa} /></TableCell>
-              <TableCell className="font-semibold text-center">{formatCurrency(machine.biaya_sewa)}</TableCell>
+              <TableCell className="font-semibold text-center">{formatCurrency(biayaSewa)}</TableCell>
               <TableCell className="text-center">
                 <Button
                   variant="ghost"
@@ -118,4 +118,4 @@ const SewaTable = ({ machines }) => {
   )
 }
 
-export default SewaTable;
+export default SewaTable

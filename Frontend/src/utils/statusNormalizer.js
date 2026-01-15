@@ -72,7 +72,6 @@ export const isMesinWarning = (statusMesin, statusSewa) => {
       mesin !== 'OVERDUE'
 }
 
-// Normalisasi biaya sewa
 export const normalizeBiayaSewa = (biaya) => {
   const parsed = parseInt(biaya)
   if (isNaN(parsed) || parsed <= 0) {
@@ -81,19 +80,15 @@ export const normalizeBiayaSewa = (biaya) => {
   return parsed
 }
 
-// Format tanggal dari backend (hapus jam)
 export const formatDateOnly = (dateString) => {
   if (!dateString) return '-'
   
   try {
-    // Jika format ISO (2024-01-15T00:00:00Z)
     const date = new Date(dateString)
     if (isNaN(date.getTime())) return dateString
     
-    // Return YYYY-MM-DD saja
     return date.toISOString().split('T')[0]
   } catch {
-    // Jika sudah format YYYY-MM-DD, return as is
     if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
       return dateString
     }
@@ -101,15 +96,28 @@ export const formatDateOnly = (dateString) => {
   }
 }
 
-// Normalisasi semua data machine termasuk biaya dan tanggal
+// Normalisasi semua data machine
 export const normalizeMachineStatuses = (machine) => {
+  // Handle biaya_sewa carefully:
+  // - Untuk Overdue page: backend sends calculated loss (bisa 0 jika tidak overdue)
+  // - Untuk Sewa page: backend sends monthly rent (dari table sewa)
+  // - Jika backend tidak kirim biaya_sewa, gunakan default 150000
+  let biayaSewa = machine.biaya_sewa
+  
+  // Jika undefined atau null, cek biaya_bulanan, atau gunakan default
+  if (biayaSewa === undefined || biayaSewa === null) {
+    biayaSewa = normalizeBiayaSewa(machine.biaya_bulanan)
+  }
+
   return {
     ...machine,
     status_mesin: normalizeStatusMesin(machine.status_mesin),
     status_sewa: normalizeStatusSewa(machine.status_sewa),
     status_data: normalizeStatusData(machine.status_data),
     status_letak: normalizeStatusLetak(machine.status_letak),
-    biaya_sewa: normalizeBiayaSewa(machine.biaya_sewa || machine.biaya_bulanan),
+    status_perbaikan: machine.status_perbaikan || normalizeStatusMesin(machine.status_mesin),
+    days_overdue: machine.days_overdue || 0,
+    biaya_sewa: biayaSewa,
     tanggal_pasang: formatDateOnly(machine.tanggal_pasang),
     estimasi_selesai: machine.estimasi_selesai ? formatDateOnly(machine.estimasi_selesai) : null
   }

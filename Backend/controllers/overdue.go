@@ -15,7 +15,6 @@ func GetOverdueSummary(c *fiber.Ctx) error {
 	var mesin []models.MesinEDC
 	db := database.DB
 
-	// Ambil semua mesin yang sedang perbaikan
 	err := db.
 		Preload("Perbaikan").
 		Preload("Sewa").
@@ -39,14 +38,18 @@ func GetOverdueSummary(c *fiber.Ctx) error {
 		totalPerbaikan++
 		p := m.Perbaikan[0]
 
-		// Hitung selisih hari dari sekarang sampai estimasi selesai
-		diffDays := int(time.Until(*p.EstimasiSelesai).Hours() / 24)
+		// Hitung selisih hari dari estimasi selesai ke sekarang
+		now := time.Now()
+		diffDays := int(p.EstimasiSelesai.Sub(now).Hours() / 24)
 
 		if diffDays < 0 {
 			// Sudah melewati estimasi => OVERDUE
 			overdue++
 			if m.Sewa != nil {
-				totalKerugian += m.Sewa.BiayaBulanan
+				// Hitung kerugian berdasarkan hari terlambat
+				daysLate := -diffDays
+				dailyCost := float64(m.Sewa.BiayaBulanan) / 30.0
+				totalKerugian += int(float64(daysLate) * dailyCost)
 			}
 		} else if diffDays <= 3 {
 			// Kurang dari atau sama dengan 3 hari tersisa => WARNING
@@ -54,7 +57,6 @@ func GetOverdueSummary(c *fiber.Ctx) error {
 		}
 	}
 
-	// Susun statusOverdue untuk frontend
 	statusOverdue := []fiber.Map{
 		{
 			"status": "PERBAIKAN",
@@ -70,7 +72,6 @@ func GetOverdueSummary(c *fiber.Ctx) error {
 		},
 	}
 
-	// Response lengkap
 	return utils.Success(c, fiber.Map{
 		"total_perbaikan":   totalPerbaikan,
 		"warning":           warning,
@@ -103,39 +104,44 @@ func GetOverdueList(c *fiber.Ctx) error {
 		p := m.Perbaikan[0]
 		status := "PERBAIKAN"
 		kerugian := 0
+		daysLate := 0
 
-		diffDays := int(time.Until(*p.EstimasiSelesai).Hours() / 24)
+		now := time.Now()
+		diffDays := int(p.EstimasiSelesai.Sub(now).Hours() / 24)
 
 		if diffDays < 0 {
 			status = "OVERDUE"
+			daysLate = -diffDays
 			if m.Sewa != nil {
-				kerugian = m.Sewa.BiayaBulanan
+				dailyCost := float64(m.Sewa.BiayaBulanan) / 30.0
+				kerugian = int(float64(daysLate) * dailyCost)
 			}
 		} else if diffDays <= 3 {
 			status = "WARNING"
+			daysLate = 0
 		}
 
 		machineResp := dto.MachineResponse{
-			ID:          m.ID,
-			TerminalID:  m.TerminalID,
-			MID:         m.MID,
-			NamaNasabah: utils.GetNamaNasabah(m.NamaNasabah, m.StatusData),
-			Kota:        m.Kota,
-			Cabang:     m.Cabang,
-			TipeEDC:    m.TipeEDC,
-			StatusMesin: status,
-			StatusData:  dto.MapStatusData(m.StatusData),
-			StatusLetak: dto.MapStatusLetak(m.LetakMesin),
-			BiayaSewa:   kerugian,
+			ID:              m.ID,
+			TerminalID:      m.TerminalID,
+			MID:             m.MID,
+			NamaNasabah:     utils.GetNamaNasabah(m.NamaNasabah, m.StatusData),
+			Kota:            m.Kota,
+			Cabang:          m.Cabang,
+			TipeEDC:         m.TipeEDC,
+			StatusMesin:     status,
+			StatusData:      dto.MapStatusData(m.StatusData),
+			StatusLetak:     dto.MapStatusLetak(m.LetakMesin),
+			BiayaSewa:       kerugian,
+			DaysOverdue:     daysLate,
+			StatusPerbaikan: status,
 		}
 
-		// Format tanggal pasang
 		tp := dto.FormatDateOnlyPtr(m.TanggalPasang)
 		if tp != "" {
 			machineResp.TanggalPasang = tp
 		}
 
-		// Format estimasi selesai
 		es := dto.FormatDateOnlyPtr(p.EstimasiSelesai)
 		if es != "" {
 			machineResp.EstimasiSelesai = &es
@@ -173,39 +179,44 @@ func SearchOverdue(c *fiber.Ctx) error {
 		p := m.Perbaikan[0]
 		status := "PERBAIKAN"
 		kerugian := 0
+		daysLate := 0
 
-		diffDays := int(time.Until(*p.EstimasiSelesai).Hours() / 24)
+		now := time.Now()
+		diffDays := int(p.EstimasiSelesai.Sub(now).Hours() / 24)
 
 		if diffDays < 0 {
 			status = "OVERDUE"
+			daysLate = -diffDays
 			if m.Sewa != nil {
-				kerugian = m.Sewa.BiayaBulanan
+				dailyCost := float64(m.Sewa.BiayaBulanan) / 30.0
+				kerugian = int(float64(daysLate) * dailyCost)
 			}
 		} else if diffDays <= 3 {
 			status = "WARNING"
+			daysLate = 0
 		}
 
 		machineResp := dto.MachineResponse{
-			ID:          m.ID,
-			TerminalID:  m.TerminalID,
-			MID:         m.MID,
-			NamaNasabah: utils.GetNamaNasabah(m.NamaNasabah, m.StatusData),
-			Kota:        m.Kota,
-			Cabang:     m.Cabang,
-			TipeEDC:    m.TipeEDC,
-			StatusMesin: status,
-			StatusData:  dto.MapStatusData(m.StatusData),
-			StatusLetak: dto.MapStatusLetak(m.LetakMesin),
-			BiayaSewa:   kerugian,
+			ID:              m.ID,
+			TerminalID:      m.TerminalID,
+			MID:             m.MID,
+			NamaNasabah:     utils.GetNamaNasabah(m.NamaNasabah, m.StatusData),
+			Kota:            m.Kota,
+			Cabang:          m.Cabang,
+			TipeEDC:         m.TipeEDC,
+			StatusMesin:     status,
+			StatusData:      dto.MapStatusData(m.StatusData),
+			StatusLetak:     dto.MapStatusLetak(m.LetakMesin),
+			BiayaSewa:       kerugian,
+			DaysOverdue:     daysLate,
+			StatusPerbaikan: status,
 		}
 
-		// Format tanggal pasang
 		tp := dto.FormatDateOnlyPtr(m.TanggalPasang)
 		if tp != "" {
 			machineResp.TanggalPasang = tp
 		}
 
-		// Format estimasi selesai
 		es := dto.FormatDateOnlyPtr(p.EstimasiSelesai)
 		if es != "" {
 			machineResp.EstimasiSelesai = &es

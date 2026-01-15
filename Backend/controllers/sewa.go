@@ -4,6 +4,8 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"backend/database"
 	"backend/models"
+	"backend/utils"
+	"backend/models/dto"
 )
 
 func GetSewaSummary(c *fiber.Ctx) error {
@@ -28,12 +30,12 @@ func GetSewaSummary(c *fiber.Ctx) error {
 			sewaBerakhir++
 		}
 
-		if s.Mesin != nil && isMesinBermasalah(s.Mesin.StatusMesin) {
+		if s.Mesin != nil && s.StatusSewa == "aktif" && isMesinBermasalah(s.Mesin.StatusMesin) {
 			bermasalah++
 		}
 	}
 
-	return c.JSON(fiber.Map{
+	return utils.Success(c, fiber.Map{
 		"sewa_aktif":          sewaAktif,
 		"sewa_berakhir":       sewaBerakhir,
 		"total_biaya_bulanan": totalBiaya,
@@ -47,37 +49,44 @@ func GetSewaList(c *fiber.Ctx) error {
 	var sewas []models.Sewa
 	err := db.Preload("Mesin").Find(&sewas).Error
 	if err != nil {
-		return c.Status(500).JSON(fiber.Map{
-			"message": "Gagal mengambil data sewa",
-		})
+		return utils.Error(c, "Gagal mengambil data sewa")
 	}
 
-	var result []fiber.Map
+	var result []dto.MachineResponse
 
 	for _, s := range sewas {
 		if s.Mesin == nil {
 			continue
 		}
 
-		biaya := s.BiayaBulanan
-		if biaya == 0 {
-			biaya = 150000
+		m := s.Mesin
+		biaya := normalizeBiayaBulanan(s.BiayaBulanan)
+
+		machineResp := dto.MachineResponse{
+			ID:          m.ID,
+			TerminalID:  m.TerminalID,
+			MID:         m.MID,
+			NamaNasabah: utils.GetNamaNasabah(m.NamaNasabah, m.StatusData),
+			Kota:        m.Kota,
+			Cabang:      m.Cabang,
+			TipeEDC:     m.TipeEDC,
+			StatusMesin: dto.MapStatusMesin(m.StatusMesin),
+			StatusData:  dto.MapStatusData(m.StatusData),
+			StatusSewa:  mapStatusSewaToDTO(s.StatusSewa),
+			StatusLetak: dto.MapStatusLetak(m.LetakMesin),
+			BiayaSewa:   biaya, // Monthly rent for Sewa page
 		}
 
-		result = append(result, fiber.Map{
-			"terminal_id":    s.Mesin.TerminalID,
-			"nama_nasabah":   s.Mesin.NamaNasabah,
-			"tanggal_pasang": s.Mesin.TanggalPasang,
+		// Format tanggal pasang
+		tp := dto.FormatDateOnlyPtr(m.TanggalPasang)
+		if tp != "" {
+			machineResp.TanggalPasang = tp
+		}
 
-			"status_mesin": mapStatusMesinToResponse(s.Mesin.StatusMesin),
-			"letak_mesin":  s.Mesin.LetakMesin,
-			"status_sewa":  mapStatusSewaToResponse(s.StatusSewa),
-
-			"biaya_bulanan": normalizeBiayaBulanan(s.BiayaBulanan),
-		})
+		result = append(result, machineResp)
 	}
 
-	return c.JSON(result)
+	return utils.Success(c, result)
 }
 
 func SearchSewa(c *fiber.Ctx) error {
@@ -94,41 +103,47 @@ func SearchSewa(c *fiber.Ctx) error {
 		Find(&sewas).Error
 
 	if err != nil {
-		return c.Status(500).JSON(fiber.Map{
-			"message": "Gagal melakukan pencarian sewa",
-		})
+		return utils.Error(c, "Gagal melakukan pencarian sewa")
 	}
 
-	var result []fiber.Map
+	var result []dto.MachineResponse
 
 	for _, s := range sewas {
 		if s.Mesin == nil {
 			continue
 		}
 
-		biaya := s.BiayaBulanan
-		if biaya == 0 {
-			biaya = 150000
+		m := s.Mesin
+		biaya := normalizeBiayaBulanan(s.BiayaBulanan)
+
+		machineResp := dto.MachineResponse{
+			ID:          m.ID,
+			TerminalID:  m.TerminalID,
+			MID:         m.MID,
+			NamaNasabah: utils.GetNamaNasabah(m.NamaNasabah, m.StatusData),
+			Kota:        m.Kota,
+			Cabang:      m.Cabang,
+			TipeEDC:     m.TipeEDC,
+			StatusMesin: dto.MapStatusMesin(m.StatusMesin),
+			StatusData:  dto.MapStatusData(m.StatusData),
+			StatusSewa:  mapStatusSewaToDTO(s.StatusSewa),
+			StatusLetak: dto.MapStatusLetak(m.LetakMesin),
+			BiayaSewa:   biaya, // Monthly rent for Sewa page
 		}
 
-		result = append(result, fiber.Map{
-			"terminal_id":    s.Mesin.TerminalID,
-			"nama_nasabah":   s.Mesin.NamaNasabah,
-			"tanggal_pasang": s.Mesin.TanggalPasang,
+		// Format tanggal pasang
+		tp := dto.FormatDateOnlyPtr(m.TanggalPasang)
+		if tp != "" {
+			machineResp.TanggalPasang = tp
+		}
 
-			"status_mesin": mapStatusMesinToResponse(s.Mesin.StatusMesin),
-			"letak_mesin":  s.Mesin.LetakMesin,
-			"status_sewa":  mapStatusSewaToResponse(s.StatusSewa),
-
-			"biaya_bulanan": normalizeBiayaBulanan(s.BiayaBulanan),
-		})
-
+		result = append(result, machineResp)
 	}
 
-	return c.JSON(result)
+	return utils.Success(c, result)
 }
 
-func mapStatusSewaToResponse(status string) string {
+func mapStatusSewaToDTO(status string) string {
 	mapper := map[string]string{
 		"aktif":    "AKTIF",
 		"berakhir": "BERAKHIR",
@@ -137,19 +152,6 @@ func mapStatusSewaToResponse(status string) string {
 		return v
 	}
 	return "BERAKHIR"
-}
-
-func mapStatusMesinToResponse(status string) string {
-	mapper := map[string]string{
-		"aktif":        "AKTIF",
-		"perbaikan":    "PERBAIKAN",
-		"rusak":        "RUSAK",
-		"tidak_aktif":  "NONAKTIF",
-	}
-	if v, ok := mapper[status]; ok {
-		return v
-	}
-	return "AKTIF"
 }
 
 func isMesinBermasalah(status string) bool {

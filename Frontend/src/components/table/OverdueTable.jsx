@@ -7,11 +7,11 @@ import { Link } from 'react-router'
 import { formatCurrency } from '@/utils/formatter'
 import StatusBadge from '../common/StatusBadge'
 import { isNewMachine } from '@/utils/dateUtils'
-import { STATUS_COLORS, STATUS_LABELS, STATUS_PERBAIKAN } from '@/utils/constants'
+import { STATUS_COLORS, STATUS_LABELS } from '@/utils/constants'
 
-
-const OverdueTable = ({ machines}) => {
-  console.log("machine",machines)
+const OverdueTable = ({ machines }) => {
+  console.log("machines in table:", machines)
+  
   return (
     <Table>
       <TableHeader className="bg-gray-200/50">
@@ -28,11 +28,11 @@ const OverdueTable = ({ machines}) => {
         </TableRow>
       </TableHeader>
       <TableBody>
-        
         {machines.map(machine => {
-          const status = machine.status_perbaikan || STATUS_PERBAIKAN.PERBAIKAN
+          // Data langsung dari backend (sudah dihitung di Go)
+          const status = machine.status_perbaikan || 'PERBAIKAN'
           const daysLate = machine.days_overdue || 0
-          const loss = machine.estimasi_kerugian || 0
+          const loss = machine.biaya_sewa || 0
           const isNew = isNewMachine(machine.tanggal_pasang)
 
           return (
@@ -52,19 +52,31 @@ const OverdueTable = ({ machines}) => {
                 </div>
               </TableCell>
               <TableCell className="table-cell">{machine.nama_nasabah || 'N/A'}</TableCell>
-              <TableCell className="table-cell text-center"><StatusBadge status={machine.status_letak} /></TableCell>
+              <TableCell className="table-cell text-center">
+                <StatusBadge status={machine.status_letak} />
+              </TableCell>
               <TableCell className="table-cell text-center">
                 <span className="text-sm">{machine.tanggal_pasang || '-'}</span>
               </TableCell>
-              <TableCell className="table-cell text-center">{machine.estimasi_selesai || '-'}</TableCell>
+              <TableCell className="table-cell text-center">
+                {machine.estimasi_selesai || '-'}
+              </TableCell>
               <TableCell>
-                <span className="font-semibold flex justify-center text-[#ed1c24]">{daysLate} hari</span>
+                <span className={`font-semibold flex justify-center ${
+                  daysLate > 0 ? 'text-[#ed1c24]' : 'text-gray-600'
+                }`}>
+                  {daysLate > 0 ? `${daysLate} hari` : '-'}
+                </span>
               </TableCell>
               <TableCell className="text-center">
-                 <Badge className={STATUS_COLORS[status]}>{STATUS_LABELS[status] ?? status}</Badge>
+                <Badge className={STATUS_COLORS[status]}>
+                  {STATUS_LABELS[status] || status}
+                </Badge>
               </TableCell>
-              <TableCell className="table-cell font-semibold text-[#ed1c24] text-center">
-                {formatCurrency(loss)}
+              <TableCell className="table-cell font-semibold text-center">
+                <span className={loss > 0 ? 'text-[#ed1c24]' : 'text-gray-600'}>
+                  {loss > 0 ? formatCurrency(loss) : '-'}
+                </span>
               </TableCell>
               <TableCell className="text-center">
                 <Button
@@ -85,4 +97,4 @@ const OverdueTable = ({ machines}) => {
   )
 }
 
-export default OverdueTable;
+export default OverdueTable
