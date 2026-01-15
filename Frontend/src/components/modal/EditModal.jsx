@@ -56,7 +56,7 @@ const EditModal = () => {
       if (__syncTimeout) clearTimeout(__syncTimeout)
       __syncTimeout = setTimeout(() => {
         setSyncWarning(null)
-      }, 3000)
+      }, 10000)
     }
 
     setEditingMachine(updated)
