@@ -11,27 +11,47 @@ import (
 func GetSewaSummary(c *fiber.Ctx) error {
 	db := database.DB
 
-	var sewas []models.Sewa
-	db.Preload("Mesin").Find(&sewas)
+	var mesins []models.MesinEDC
+	err := db.Find(&mesins).Error
+	if err != nil {
+		return utils.Error(c, "Gagal mengambil summary sewa")
+	}
+
+	// Ambil semua sewa aktif dalam satu query
+	var sewasAktif []models.Sewa
+	err = db.Where("status_sewa = ?", "aktif").
+		Order("created_at DESC").
+		Find(&sewasAktif).Error
+	if err != nil {
+		return utils.Error(c, "Gagal mengambil data sewa aktif")
+	}
+
+	// Buat map untuk lookup cepat sewa aktif per mesin
+	sewaMap := make(map[uint]*models.Sewa)
+	for i := range sewasAktif {
+		mesinID := sewasAktif[i].MesinID
+		if _, exists := sewaMap[mesinID]; !exists {
+			sewaMap[mesinID] = &sewasAktif[i]
+		}
+	}
 
 	sewaAktif := 0
 	sewaBerakhir := 0
 	bermasalah := 0
 	totalBiaya := 0
 
-	for _, s := range sewas {
-		biaya := normalizeBiayaBulanan(s.BiayaBulanan)
-
-		switch s.StatusSewa {
-		case "aktif":
+	for _, m := range mesins {
+		if sewa, exists := sewaMap[m.ID]; exists {
+			// Mesin ini punya sewa aktif
 			sewaAktif++
-			totalBiaya += biaya
-		case "berakhir":
-			sewaBerakhir++
-		}
+			totalBiaya += normalizeBiayaBulanan(sewa.BiayaBulanan)
 
-		if s.Mesin != nil && s.StatusSewa == "aktif" && isMesinBermasalah(s.Mesin.StatusMesin) {
-			bermasalah++
+			if isMesinBermasalah(m.StatusMesin) {
+				bermasalah++
+			}
+		} else {
+			// Mesin ini tidak punya sewa aktif
+			sewaBerakhir++
 		}
 	}
 
@@ -46,23 +66,43 @@ func GetSewaSummary(c *fiber.Ctx) error {
 func GetSewaList(c *fiber.Ctx) error {
 	db := database.DB
 
-	var sewas []models.Sewa
-	err := db.Preload("Mesin").Find(&sewas).Error
+	var mesins []models.MesinEDC
+	err := db.Find(&mesins).Error
 	if err != nil {
 		return utils.Error(c, "Gagal mengambil data sewa")
 	}
 
+	// Ambil semua sewa aktif dalam satu query
+	var sewasAktif []models.Sewa
+	err = db.Where("status_sewa = ?", "aktif").
+		Order("created_at DESC").
+		Find(&sewasAktif).Error
+	if err != nil {
+		return utils.Error(c, "Gagal mengambil data sewa aktif")
+	}
+
+	// Buat map untuk lookup cepat sewa aktif per mesin
+	sewaMap := make(map[uint]*models.Sewa)
+	for i := range sewasAktif {
+		mesinID := sewasAktif[i].MesinID
+		if _, exists := sewaMap[mesinID]; !exists {
+			sewaMap[mesinID] = &sewasAktif[i]
+		}
+	}
+
 	var result []dto.MachineResponse
 
-	for _, s := range sewas {
-		if s.Mesin == nil {
-			continue
+	for _, m := range mesins {
+		statusSewa := "BERAKHIR"
+		biaya := 0
+
+		// Cek apakah mesin punya sewa aktif
+		if sewa, exists := sewaMap[m.ID]; exists {
+			statusSewa = mapStatusSewaToDTO(sewa.StatusSewa)
+			biaya = normalizeBiayaBulanan(sewa.BiayaBulanan)
 		}
 
-		m := s.Mesin
-		biaya := normalizeBiayaBulanan(s.BiayaBulanan)
-
-		machineResp := dto.MachineResponse{
+		resp := dto.MachineResponse{
 			ID:          m.ID,
 			TerminalID:  m.TerminalID,
 			MID:         m.MID,
@@ -72,18 +112,16 @@ func GetSewaList(c *fiber.Ctx) error {
 			TipeEDC:     m.TipeEDC,
 			StatusMesin: dto.MapStatusMesin(m.StatusMesin),
 			StatusData:  dto.MapStatusData(m.StatusData),
-			StatusSewa:  mapStatusSewaToDTO(s.StatusSewa),
+			StatusSewa:  statusSewa,
 			StatusLetak: dto.MapStatusLetak(m.LetakMesin),
-			BiayaSewa:   biaya, // Monthly rent for Sewa page
+			BiayaSewa:   biaya,
 		}
 
-		// Format tanggal pasang
-		tp := dto.FormatDateOnlyPtr(m.TanggalPasang)
-		if tp != "" {
-			machineResp.TanggalPasang = tp
+		if tp := dto.FormatDateOnlyPtr(m.TanggalPasang); tp != "" {
+			resp.TanggalPasang = tp
 		}
 
-		result = append(result, machineResp)
+		result = append(result, resp)
 	}
 
 	return utils.Success(c, result)

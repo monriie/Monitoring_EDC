@@ -9,15 +9,26 @@ import (
 	"backend/utils"
 
 	"github.com/gofiber/fiber/v2"
+	"gorm.io/gorm"
 )
 
+// ==========================
+// GetOverdueSummary
+// ==========================
 func GetOverdueSummary(c *fiber.Ctx) error {
 	var mesin []models.MesinEDC
 	db := database.DB
 
-	err := db.
-		Preload("Perbaikan").
-		Preload("Sewa").
+	// Ambil semua MesinEDC dengan status perbaikan
+	err := db.Preload("Perbaikan").
+		Preload("Sewas", func(db *gorm.DB) *gorm.DB {
+			// Ambil Sewa aktif terakhir
+			sub := db.Model(&models.Sewa{}).
+				Where("status_sewa = ?", "aktif").
+				Order("created_at DESC").
+				Limit(1)
+			return sub
+		}).
 		Where("status_mesin = ?", "perbaikan").
 		Find(&mesin).Error
 
@@ -30,6 +41,8 @@ func GetOverdueSummary(c *fiber.Ctx) error {
 	overdue := 0
 	totalKerugian := 0
 
+	now := time.Now()
+
 	for _, m := range mesin {
 		if len(m.Perbaikan) == 0 || m.Perbaikan[0].EstimasiSelesai == nil {
 			continue
@@ -38,38 +51,27 @@ func GetOverdueSummary(c *fiber.Ctx) error {
 		totalPerbaikan++
 		p := m.Perbaikan[0]
 
-		// Hitung selisih hari dari estimasi selesai ke sekarang
-		now := time.Now()
 		diffDays := int(p.EstimasiSelesai.Sub(now).Hours() / 24)
 
 		if diffDays < 0 {
-			// Sudah melewati estimasi => OVERDUE
 			overdue++
-			if m.Sewa != nil {
-				// Hitung kerugian berdasarkan hari terlambat
-				daysLate := -diffDays
-				dailyCost := float64(m.Sewa.BiayaBulanan) / 30.0
+			daysLate := -diffDays
+
+			if len(m.Sewas) > 0 {
+				sewa := m.Sewas[0]
+				dailyCost := float64(normalizeBiayaBulanan(sewa.BiayaBulanan)) / 30.0
 				totalKerugian += int(float64(daysLate) * dailyCost)
 			}
+
 		} else if diffDays <= 3 {
-			// Kurang dari atau sama dengan 3 hari tersisa => WARNING
 			warning++
 		}
 	}
 
 	statusOverdue := []fiber.Map{
-		{
-			"status": "PERBAIKAN",
-			"total":  totalPerbaikan - warning - overdue,
-		},
-		{
-			"status": "WARNING",
-			"total":  warning,
-		},
-		{
-			"status": "OVERDUE",
-			"total":  overdue,
-		},
+		{"status": "PERBAIKAN", "total": totalPerbaikan - warning - overdue},
+		{"status": "WARNING", "total": warning},
+		{"status": "OVERDUE", "total": overdue},
 	}
 
 	return utils.Success(c, fiber.Map{
@@ -81,12 +83,17 @@ func GetOverdueSummary(c *fiber.Ctx) error {
 	})
 }
 
+// ==========================
+// GetOverdueList
+// ==========================
 func GetOverdueList(c *fiber.Ctx) error {
 	var mesin []models.MesinEDC
+	db := database.DB
 
-	err := database.DB.
-		Preload("Perbaikan").
-		Preload("Sewa").
+	err := db.Preload("Perbaikan").
+		Preload("Sewas", func(db *gorm.DB) *gorm.DB {
+			return db.Where("status_sewa = ?", "aktif").Order("created_at DESC").Limit(1)
+		}).
 		Where("status_mesin = ?", "perbaikan").
 		Find(&mesin).Error
 
@@ -94,6 +101,7 @@ func GetOverdueList(c *fiber.Ctx) error {
 		return utils.Error(c, "Gagal mengambil data mesin overdue")
 	}
 
+	now := time.Now()
 	var result []dto.MachineResponse
 
 	for _, m := range mesin {
@@ -106,22 +114,23 @@ func GetOverdueList(c *fiber.Ctx) error {
 		kerugian := 0
 		daysLate := 0
 
-		now := time.Now()
 		diffDays := int(p.EstimasiSelesai.Sub(now).Hours() / 24)
 
 		if diffDays < 0 {
 			status = "OVERDUE"
 			daysLate = -diffDays
-			if m.Sewa != nil {
-				dailyCost := float64(m.Sewa.BiayaBulanan) / 30.0
+
+			if len(m.Sewas) > 0 {
+				sewa := m.Sewas[0]
+				dailyCost := float64(normalizeBiayaBulanan(sewa.BiayaBulanan)) / 30.0
 				kerugian = int(float64(daysLate) * dailyCost)
 			}
+
 		} else if diffDays <= 3 {
 			status = "WARNING"
-			daysLate = 0
 		}
 
-		machineResp := dto.MachineResponse{
+		resp := dto.MachineResponse{
 			ID:              m.ID,
 			TerminalID:      m.TerminalID,
 			MID:             m.MID,
@@ -137,38 +146,39 @@ func GetOverdueList(c *fiber.Ctx) error {
 			StatusPerbaikan: status,
 		}
 
-		tp := dto.FormatDateOnlyPtr(m.TanggalPasang)
-		if tp != "" {
-			machineResp.TanggalPasang = tp
+		if tp := dto.FormatDateOnlyPtr(m.TanggalPasang); tp != "" {
+			resp.TanggalPasang = tp
+		}
+		if es := dto.FormatDateOnlyPtr(p.EstimasiSelesai); es != "" {
+			resp.EstimasiSelesai = &es
 		}
 
-		es := dto.FormatDateOnlyPtr(p.EstimasiSelesai)
-		if es != "" {
-			machineResp.EstimasiSelesai = &es
-		}
-
-		result = append(result, machineResp)
+		result = append(result, resp)
 	}
 
 	return utils.Success(c, result)
 }
 
+// ==========================
+// SearchOverdue
+// ==========================
 func SearchOverdue(c *fiber.Ctx) error {
 	query := c.Query("q")
-
 	var mesin []models.MesinEDC
-	err := database.DB.
-		Preload("Perbaikan").
-		Preload("Sewa").
-		Where(`
-			status_mesin = ?
-			AND (terminal_id LIKE ? OR nama_nasabah LIKE ?)
-		`, "perbaikan", "%"+query+"%", "%"+query+"%").Find(&mesin).Error
+
+	err := database.DB.Preload("Perbaikan").
+		Preload("Sewas", func(db *gorm.DB) *gorm.DB {
+			return db.Where("status_sewa = ?", "aktif").Order("created_at DESC").Limit(1)
+		}).
+		Where("status_mesin = ? AND (terminal_id LIKE ? OR nama_nasabah LIKE ?)",
+			"perbaikan", "%"+query+"%", "%"+query+"%").
+		Find(&mesin).Error
 
 	if err != nil {
 		return utils.Error(c, "Gagal melakukan pencarian overdue")
 	}
 
+	now := time.Now()
 	var result []dto.MachineResponse
 
 	for _, m := range mesin {
@@ -181,22 +191,22 @@ func SearchOverdue(c *fiber.Ctx) error {
 		kerugian := 0
 		daysLate := 0
 
-		now := time.Now()
 		diffDays := int(p.EstimasiSelesai.Sub(now).Hours() / 24)
 
 		if diffDays < 0 {
 			status = "OVERDUE"
 			daysLate = -diffDays
-			if m.Sewa != nil {
-				dailyCost := float64(m.Sewa.BiayaBulanan) / 30.0
+
+			if len(m.Sewas) > 0 {
+				sewa := m.Sewas[0]
+				dailyCost := float64(normalizeBiayaBulanan(sewa.BiayaBulanan)) / 30.0
 				kerugian = int(float64(daysLate) * dailyCost)
 			}
 		} else if diffDays <= 3 {
 			status = "WARNING"
-			daysLate = 0
 		}
 
-		machineResp := dto.MachineResponse{
+		resp := dto.MachineResponse{
 			ID:              m.ID,
 			TerminalID:      m.TerminalID,
 			MID:             m.MID,
@@ -212,17 +222,14 @@ func SearchOverdue(c *fiber.Ctx) error {
 			StatusPerbaikan: status,
 		}
 
-		tp := dto.FormatDateOnlyPtr(m.TanggalPasang)
-		if tp != "" {
-			machineResp.TanggalPasang = tp
+		if tp := dto.FormatDateOnlyPtr(m.TanggalPasang); tp != "" {
+			resp.TanggalPasang = tp
+		}
+		if es := dto.FormatDateOnlyPtr(p.EstimasiSelesai); es != "" {
+			resp.EstimasiSelesai = &es
 		}
 
-		es := dto.FormatDateOnlyPtr(p.EstimasiSelesai)
-		if es != "" {
-			machineResp.EstimasiSelesai = &es
-		}
-
-		result = append(result, machineResp)
+		result = append(result, resp)
 	}
 
 	return utils.Success(c, result)
