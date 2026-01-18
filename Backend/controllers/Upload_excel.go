@@ -9,15 +9,12 @@ import (
 	"backend/database"
 	"backend/models"
 	"backend/models/dto"
-    "backend/utils"
+	"backend/utils"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/xuri/excelize/v2"
 )
 
-// =====================
-// UPLOAD VENDOR EXCEL
-// =====================
 func UploadVendorExcel(c *fiber.Ctx) error {
 	file, err := c.FormFile("file")
 	if err != nil {
@@ -46,56 +43,74 @@ func UploadVendorExcel(c *fiber.Ctx) error {
 	}
 
 	var inserted, updated, skipped int
+	var skipReasons = make(map[string]int)
 
 	for i := 1; i < len(rows); i++ {
+		if isVendorHeaderRow(rows[i]) {
+			skipped++
+			skipReasons["header"]++
+			continue
+		}
 
-		tid := dto.GetRawCell(xl, sheet, i, 1) // TID
-		mid := dto.GetRawCell(xl, sheet, i, 2) // MID
+		// ✅ Skip empty rows
+		if len(rows[i]) == 0 || isEmptyRow(rows[i]) {
+			skipped++
+			skipReasons["empty_row"]++
+			continue
+		}
+
+		tid := dto.GetRawCell(xl, sheet, i, 1)
+		mid := dto.GetRawCell(xl, sheet, i, 2)
 		kota := dto.GetRawCell(xl, sheet, i, 6)
 		cabang := dto.GetRawCell(xl, sheet, i, 7)
-		tipeEDC := dto.GetRawCell(xl, sheet, i, 8)
+		tipeEDC := dto.GetRawCell(xl, sheet, i, 8) 
 
 		if tid == "" {
 			skipped++
+			skipReasons["no_tid"]++
 			continue
 		}
 
 		var mesin models.MesinEDC
 		err := database.DB.Where("terminal_id = ?", tid).First(&mesin).Error
 
-		// =======================
-		// DATA SUDAH ADA → MERGE
-		// =======================
 		if err == nil {
-
 			vendorData := models.MesinEDC{
-				MID:      mid,
-				Kota:     kota,
-				Cabang:   cabang,
-				TipeEDC:  tipeEDC,
+				MID:     mid,
+				Kota:    kota,
+				Cabang:  cabang,
+				TipeEDC: tipeEDC,
 			}
 
 			updates := utils.MergeVendorData(&mesin, vendorData)
 
 			if len(updates) == 0 {
 				skipped++
+				skipReasons["no_changes"]++
 				continue
 			}
 
 			if err := database.DB.Model(&mesin).Updates(updates).Error; err != nil {
 				skipped++
+				skipReasons["update_failed"]++
 				continue
+			}
+			var sewa models.Sewa
+			errSewa := database.DB.Where("mesin_id = ?", mesin.ID).First(&sewa).Error
+			
+			if errors.Is(errSewa, gorm.ErrRecordNotFound) {
+				sewa = models.Sewa{
+					MesinID:      mesin.ID,
+					StatusSewa:   "berakhir",
+					BiayaBulanan: 0,
+				}
+				database.DB.Create(&sewa)
 			}
 
 			updated++
 			continue
 		}
-
-		// =======================
-		// RECORD BARU → INSERT
-		// =======================
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-
 			newMesin := models.MesinEDC{
 				TerminalID: tid,
 				MID:        mid,
@@ -103,31 +118,42 @@ func UploadVendorExcel(c *fiber.Ctx) error {
 				Cabang:     cabang,
 				TipeEDC:    tipeEDC,
 				StatusData: "vendor_only",
+				StatusMesin: "aktif",
+				LetakMesin: "vendor",
 			}
 
 			if err := database.DB.Create(&newMesin).Error; err != nil {
 				skipped++
+				skipReasons["create_failed"]++
 				continue
 			}
+
+			sewa := models.Sewa{
+				MesinID:      newMesin.ID,
+				StatusSewa:   "berakhir",
+				BiayaBulanan: 0,
+			}
+
+			database.DB.Create(&sewa)
 
 			inserted++
 			continue
 		}
 
 		skipped++
+		skipReasons["unknown_error"]++
 	}
 
 	return c.JSON(fiber.Map{
-		"message":  "Upload vendor selesai",
-		"inserted": inserted,
-		"updated":  updated,
-		"skipped":  skipped,
+		"message":      "Upload vendor selesai",
+		"inserted":     inserted,
+		"updated":      updated,
+		"skipped":      skipped,
+		"skip_reasons": skipReasons,
+		"total_rows":   len(rows) - 1,
 	})
 }
 
-// =====================
-// UPLOAD BANK EXCEL
-// =====================
 func UploadBankExcel(c *fiber.Ctx) error {
 	file, err := c.FormFile("file")
 	if err != nil {
@@ -156,20 +182,39 @@ func UploadBankExcel(c *fiber.Ctx) error {
 	}
 
 	var inserted, updated, skipped int
+	var skipReasons = make(map[string]int)
 
 	for i := 1; i < len(rows); i++ {
+		if isBankHeaderRow(rows[i]) {
+			skipped++
+			skipReasons["header"]++
+			continue
+		}
+
+		// ✅ Skip empty rows
+		if len(rows[i]) == 0 || isEmptyRow(rows[i]) {
+			skipped++
+			skipReasons["empty_row"]++
+			continue
+		}
 
 		terminalID := dto.GetRawCell(xl, sheet, i, 1)
 		namaNasabah := dto.GetRawCell(xl, sheet, i, 5)
 
 		if terminalID == "" || namaNasabah == "" {
 			skipped++
+			if terminalID == "" {
+				skipReasons["no_terminal_id"]++
+			} else {
+				skipReasons["no_nasabah"]++
+			}
 			continue
 		}
 
-		tanggalPasang, err := dto.GetExcelDate(xl, sheet, i, 6)
+		tanggalPasang, err := dto.GetExcelDate(xl, sheet, i, 6) // ACTUAL_START_DATE (kolom G)
 		if err != nil {
 			skipped++
+			skipReasons["invalid_date"]++
 			continue
 		}
 
@@ -178,67 +223,125 @@ func UploadBankExcel(c *fiber.Ctx) error {
 			Where("terminal_id = ?", terminalID).
 			First(&mesin).Error
 
-		// ======================
-		// DATA SUDAH ADA → MERGE
-		// ======================
 		if err == nil {
-
 			bankData := models.MesinEDC{
-				NamaNasabah:  namaNasabah,
+				NamaNasabah:   namaNasabah,
 				TanggalPasang: tanggalPasang,
 			}
 
 			updates := utils.MergeBankData(&mesin, bankData)
+			if mesin.LetakMesin == "vendor" {
+				updates["letak_mesin"] = "nasabah"
+			}
 
 			if len(updates) == 0 {
 				skipped++
+				skipReasons["no_changes"]++
 				continue
 			}
 
 			if err := database.DB.Model(&mesin).Updates(updates).Error; err != nil {
 				skipped++
+				skipReasons["update_failed"]++
 				continue
+			}
+			var sewa models.Sewa
+			errSewa := database.DB.Where("mesin_id = ?", mesin.ID).First(&sewa).Error
+			
+			if errors.Is(errSewa, gorm.ErrRecordNotFound) {
+				sewa = models.Sewa{
+					MesinID:      mesin.ID,
+					StatusSewa:   "aktif",
+					BiayaBulanan: 150000,
+				}
+				database.DB.Create(&sewa)
+			} else if errSewa == nil {
+				// Sewa sudah ada, update ke aktif
+				sewa.StatusSewa = "aktif"
+				if sewa.BiayaBulanan <= 0 {
+					sewa.BiayaBulanan = 150000
+				}
+				database.DB.Save(&sewa)
 			}
 
 			updated++
 			continue
 		}
 
-		// ======================
-		// RECORD BARU → INSERT
-		// ======================
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-
 			newMesin := models.MesinEDC{
 				TerminalID:    terminalID,
-				NamaNasabah:  namaNasabah,
+				NamaNasabah:   namaNasabah,
 				TanggalPasang: tanggalPasang,
-				StatusData:   "bank",
+				StatusData:    "bank",
+				StatusMesin:   "aktif",
+				LetakMesin:    "nasabah",
 			}
 
 			if err := database.DB.Create(&newMesin).Error; err != nil {
 				skipped++
+				skipReasons["create_failed"]++
 				continue
 			}
+
+			sewa := models.Sewa{
+				MesinID:      newMesin.ID,
+				StatusSewa:   "aktif",
+				BiayaBulanan: 150000, // Default 150k
+			}
+
+			database.DB.Create(&sewa)
 
 			inserted++
 			continue
 		}
 
 		skipped++
+		skipReasons["unknown_error"]++
 	}
 
 	return c.JSON(fiber.Map{
-		"message":  "Upload bank selesai",
-		"inserted": inserted,
-		"updated":  updated,
-		"skipped":  skipped,
+		"message":      "Upload bank selesai",
+		"inserted":     inserted,
+		"updated":      updated,
+		"skipped":      skipped,
+		"skip_reasons": skipReasons,
+		"total_rows":   len(rows) - 1,
 	})
 }
 
-// =====================
-// HELPERS
-// =====================
+func isVendorHeaderRow(row []string) bool {
+	if len(row) < 2 {
+		return false
+	}
+	
+	// Check if first column contains "NO" and second contains "TID"
+	firstCol := strings.ToUpper(strings.TrimSpace(row[0]))
+	secondCol := strings.ToUpper(strings.TrimSpace(row[1]))
+	
+	return firstCol == "NO" && secondCol == "TID"
+}
+
+func isBankHeaderRow(row []string) bool {
+	if len(row) < 2 {
+		return false
+	}
+	
+	firstCol := strings.ToUpper(strings.TrimSpace(row[0]))
+	secondCol := strings.ToUpper(strings.TrimSpace(row[1]))
+	
+	return firstCol == "NO" && strings.Contains(secondCol, "TERMINAL")
+}
+
+func isEmptyRow(row []string) bool {
+	for _, cell := range row {
+		if strings.TrimSpace(cell) != "" {
+			return false
+		}
+	}
+	return true
+}
+
 func isExcelFile(filename string) bool {
 	filename = strings.ToLower(filename)
 	return strings.HasSuffix(filename, ".xlsx") || strings.HasSuffix(filename, ".xls")
