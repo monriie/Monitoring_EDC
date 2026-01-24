@@ -16,7 +16,6 @@
 - [Prasyarat](#-prasyarat)
 - [Instalasi](#-instalasi)
 - [Penggunaan](#-penggunaan)
-- [Dokumentasi API](#-dokumentasi-api)
 - [Struktur Project](#-struktur-project)
 
 ---

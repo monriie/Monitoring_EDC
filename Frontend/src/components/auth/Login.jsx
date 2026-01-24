@@ -1,14 +1,13 @@
 import { useState } from "react"
-import { Lock, User, Loader2 } from "lucide-react"
+import { Lock, User } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { useAuth } from "@/context/AuthContext"
-import { Link } from "react-router"
 import Loading from "../common/Loading"
 
-export const Login = () => {
+const Login = () => {
   const { login, loading } = useAuth()
   const [form, setForm] = useState({ username: "", password: "" })
 
@@ -19,34 +18,31 @@ export const Login = () => {
   const handleSubmit = async (e) => {
     e.preventDefault()
     if (!form.username || !form.password) {
-      toast.error("Username dan password harus diisi")
       return
     }
     await login(form.username, form.password)
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4">
-      <Card className="w-full max-w-md py-6">
-        <CardHeader className="space-y-1">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="p-2 bg-[#00AEEF] rounded-lg">
-              <Lock className="w-6 h-6 text-white" />
-            </div>
-            <CardTitle className="text-2xl font-bold">
-              Login
-            </CardTitle>
+    <div className="w-full">
+      <Card className="w-full border-0 shadow-none">
+        <CardContent className="p-8">
+          
+          <div className="mb-8 flex justify-center">
+            <img 
+              src="/logo-bank_sumsel.png" 
+              alt="Bank Sumsel Babel" 
+              className="h-12" 
+            />
           </div>
-          <CardDescription>
-            Masuk ke Sistem Monitoring Mesin EDC
-          </CardDescription>
-        </CardHeader>
 
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Username */}
+          <form onSubmit={handleSubmit} className="space-y-5">
+            
+            {/* Username Field */}
             <div className="space-y-2">
-              <Label htmlFor="username">Username</Label>
+              <Label htmlFor="username" className="text-sm font-medium text-gray-700">
+                Username
+              </Label>
               <div className="relative">
                 <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <Input
@@ -55,16 +51,16 @@ export const Login = () => {
                   placeholder="Masukkan username"
                   value={form.username}
                   onChange={handleChange}
-                  className="pl-10"
+                  className="pl-10 h-11"
                   disabled={loading}
-                  required
                 />
               </div>
             </div>
 
-            {/* Password */}
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password" className="text-sm font-medium text-gray-700">
+                Password
+              </Label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <Input
@@ -73,38 +69,49 @@ export const Login = () => {
                   placeholder="Masukkan password"
                   value={form.password}
                   onChange={handleChange}
-                  className="pl-10"
+                  onKeyDown={(e) => e.key === 'Enter' && handleSubmit(e)}
+                  className="pl-10 h-11"
                   disabled={loading}
-                  required
                 />
               </div>
             </div>
 
-            {/* Info Akun Demo */}
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm">
-              <p className="font-semibold text-blue-900 mb-1">Akun Demo:</p>
-              <p className="text-blue-800">Admin: admin / admin123</p>
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3.5">
+              <p className="font-semibold text-blue-900 text-xs mb-1">
+                Akun Demo
+              </p>
+              <p className="text-blue-800 text-xs">
+                Username: <span className="font-semibold">admin</span> | 
+                Password: <span className="font-semibold">admin123</span>
+              </p>
             </div>
 
-            {/* Submit Button */}
             <Button
               type="submit"
-              className="w-full bg-[#00AEEF] hover:bg-[#0099D6]"
+              className="w-full h-11 bg-[#00AEEF] hover:bg-[#0099D6] text-white font-semibold shadow-lg"
               disabled={loading}
             >
               {loading ? (
-                <Loading/>
+                <div className="flex items-center gap-2">
+                  <Loading />
+                  <span>Memproses...</span>
+                </div>
               ) : (
-                
-                <p className="md:text-lg">
-                  Login
-                </p>
+                "Masuk"
               )}
             </Button>
+            
           </form>
+
+          <p className="text-center text-xs text-gray-500 mt-8">
+            © 2026 Bank Sumsel Babel. Hak Cipta Dilindungi.
+          </p>
+          
         </CardContent>
       </Card>
+      
     </div>
   )
 }
+
 export default Login;
